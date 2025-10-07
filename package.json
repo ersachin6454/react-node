@@ -1,0 +1,11 @@
+{
+  "name": "react-node-project",
+  "version": "1.0.0",
+  "description": "Full-stack React Node.js project",
+  "scripts": {
+    "dev": "cd server && npm run dev",
+    "start": "cd server && npm start",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  }
+}
