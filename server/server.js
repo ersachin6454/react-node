@@ -8,7 +8,7 @@ const { connectDB } = require('./config/database');
 connectDB();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
@@ -17,6 +17,7 @@ app.use(bodyParser.json());
 // Routes
 app.use('/api/items', require('./routes/items'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/products', require('./routes/products'));
 
 // Database health check endpoint
 app.get('/api/health', async (req, res) => {
