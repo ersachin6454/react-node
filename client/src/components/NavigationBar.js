@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaUser, FaHeart, FaShoppingCart, FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import ProfileModal from './ProfileModal';
 import Notification from './Notification';
 import '../styles/Navigation.css';
@@ -9,9 +10,9 @@ import '../styles/Navigation.css';
 function NavigationBar() {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const [notification, setNotification] = useState({ message: '', type: 'info', isVisible: false });
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
+  const { cartCount } = useCart();
   
   const handleProfileClick = (e) => {
     e.preventDefault();
@@ -24,26 +25,7 @@ function NavigationBar() {
     }
   };
 
-  // Fetch cart count when user is authenticated
-  useEffect(() => {
-    const fetchCartCount = async () => {
-      if (isAuthenticated() && user?.id) {
-        try {
-          const response = await fetch(`/api/users/${user.id}/cart/count`);
-          if (response.ok) {
-            const data = await response.json();
-            setCartCount(data.count || 0);
-          }
-        } catch (error) {
-          console.error('Error fetching cart count:', error);
-        }
-      } else {
-        setCartCount(0);
-      }
-    };
-
-    fetchCartCount();
-  }, [isAuthenticated(), user?.id]);
+  // Cart count is now managed by CartContext
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type, isVisible: true });
@@ -55,7 +37,6 @@ function NavigationBar() {
 
   const handleLogout = () => {
     logout();
-    setCartCount(0);
     showNotification('Logged out successfully!', 'success');
   };
 

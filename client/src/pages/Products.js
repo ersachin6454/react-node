@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaHeart, FaStar } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import Notification from '../components/Notification';
 import '../styles/Products.css';
 
 function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ message: '', type: 'info', isVisible: false });
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const wishlistLoadingRef = useRef(false);
   const { user, isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
 
   const fetchProducts = async () => {
     try {
@@ -33,17 +37,11 @@ function Products() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated() && user?.id) {
-      fetchWishlistItems();
-    }
-  }, [user?.id]);
-
-  const fetchWishlistItems = async () => {
-    if (wishlistLoading) return; // Prevent multiple simultaneous calls
+  const fetchWishlistItems = useCallback(async () => {
+    if (wishlistLoadingRef.current || !user?.id) return; // Prevent multiple simultaneous calls and check user exists
     
     try {
-      setWishlistLoading(true);
+      wishlistLoadingRef.current = true;
       const response = await fetch(`/api/users/${user.id}/wishlist`);
       if (response.ok) {
         const data = await response.json();
@@ -52,9 +50,15 @@ function Products() {
     } catch (error) {
       console.error('Error fetching wishlist items:', error);
     } finally {
-      setWishlistLoading(false);
+      wishlistLoadingRef.current = false;
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (isAuthenticated() && user?.id) {
+      fetchWishlistItems();
+    }
+  }, [user?.id, isAuthenticated, fetchWishlistItems]);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type, isVisible: true });
@@ -68,43 +72,31 @@ function Products() {
     return wishlistItems.includes(parseInt(productId));
   };
 
-  const addToCart = async (product) => {
-    if (!isAuthenticated()) {
-      showNotification('Please login to add items to cart!', 'error');
-      return;
-    }
+  const handleProductClick = (productId) => {
+    navigate(`/product/${productId}`);
+  };
 
-    try {
-      console.log('Adding to cart:', { productId: product.id, userId: user.id });
-      const response = await fetch(`/api/users/${user.id}/cart`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, quantity: 1 })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Cart updated:', result);
-        showNotification('Item added to cart successfully!', 'success');
-        // Optionally refresh cart count in navigation
-      } else {
-        const error = await response.json();
-        console.error('Cart error:', error);
-        showNotification(error.error || 'Failed to add to cart', 'error');
-      }
-    } catch (error) {
-      console.error('Cart fetch error:', error);
-      showNotification('Failed to add to cart. Please try again.', 'error');
+  const handleAddToCart = async (product, event) => {
+    event.stopPropagation(); // Prevent navigation when clicking add to cart
+    console.log('handleAddToCart called with product:', product);
+    const success = await addToCart(product.id, 1);
+    console.log('Add to cart success:', success);
+    if (success) {
+      showNotification('Item added to cart successfully!', 'success');
+      // Don't navigate to cart page - just add to cart
+    } else {
+      showNotification('Failed to add item to cart', 'error');
     }
   };
 
-  const toggleWishlist = async (product) => {
+  const toggleWishlist = async (product, event) => {
+    event.stopPropagation(); // Prevent navigation when clicking wishlist
     if (!isAuthenticated()) {
       showNotification('Please login to manage your wishlist!', 'error');
       return;
     }
 
-    if (wishlistLoading) {
+    if (wishlistLoadingRef.current) {
       return; // Prevent multiple simultaneous calls
     }
 
@@ -160,7 +152,7 @@ function Products() {
 
       <div className="products-grid">
         {products.map((product, index) => (
-          <div key={product.id || index} className="product-card">
+          <div key={product.id || index} className="product-card" onClick={() => handleProductClick(product.id)}>
             <div className="product-image">
               <img 
                 src={product.images && product.images.length > 0 ? product.images[0] : `https://images.unsplash.com/photo-${1500000000000 + index}?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80`} 
@@ -169,17 +161,17 @@ function Products() {
                   e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
                 }}
               />
-              <div className="product-actions">
+              <div className="product-actions-overlay">
                 <button 
-                  className={`action-btn wishlist-btn ${isInWishlist(product.id) ? 'in-wishlist' : ''}`}
-                  onClick={() => toggleWishlist(product)}
+                  className={`product-wishlist-btn ${isInWishlist(product.id) ? 'wishlist-active' : ''}`}
+                  onClick={(e) => toggleWishlist(product, e)}
                   title={isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                 >
                   <FaHeart />
                 </button>
                 <button 
-                  className="action-btn cart-btn"
-                  onClick={() => addToCart(product)}
+                  className="product-cart-btn"
+                  onClick={(e) => handleAddToCart(product, e)}
                   title="Add to Cart"
                 >
                   <FaShoppingCart />
@@ -188,7 +180,7 @@ function Products() {
             </div>
             
             <div className="product-info">
-              <h3 className="product-title">
+              <h3 className="products-page-title">
                 {product.name || `Product ${index + 1}`}
               </h3>
               
@@ -219,7 +211,7 @@ function Products() {
               
               <button 
                 className="add-to-cart-btn"
-                onClick={() => addToCart(product)}
+                onClick={(e) => handleAddToCart(product, e)}
                 disabled={!product.quantity || product.quantity <= 0}
               >
                 <FaShoppingCart />

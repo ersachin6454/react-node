@@ -4,3 +4,7 @@ DB_USER=
 DB_PASSWORD=
 DB_NAME=react_node_project
 NODE_ENV=development
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here

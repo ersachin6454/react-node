@@ -19,6 +19,9 @@ app.use('/api/items', require('./routes/items'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/cart', require('./routes/cart'));
+app.use('/api/payment', require('./routes/payment'));
+app.use('/api/orders', require('./routes/orders'));
 
 // Database health check endpoint
 app.get('/api/health', async (req, res) => {

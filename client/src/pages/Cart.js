@@ -1,47 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import Notification from '../components/Notification';
 import '../styles/Cart.css';
 
 function Cart() {
-  const [cartItems, setCartItems] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const [notification, setNotification] = useState({ message: '', type: 'info', isVisible: false });
+  const [products, setProducts] = useState([]);
+  const [address, setAddress] = useState({
+    fullName: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    phone: ''
+  });
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const { user, isAuthenticated } = useAuth();
+  const { cartItems, loading, removeFromCart, updateQuantity, getTotalPrice, fetchCartItems } = useCart();
+
+  const fetchProductDetails = useCallback(async () => {
+    if (cartItems.length === 0) return;
+    
+    try {
+      const productPromises = cartItems.map(item => 
+        fetch(`/api/products/${item.product_id}`).then(res => res.json())
+      );
+      const productDetails = await Promise.all(productPromises);
+      setProducts(productDetails);
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+    }
+  }, [cartItems]);
 
   useEffect(() => {
+    console.log('Cart useEffect triggered:', { isAuthenticated: isAuthenticated(), userId: user?.id, cartItemsLength: cartItems.length });
     if (isAuthenticated() && user?.id) {
-      fetchCartItems();
-    } else {
-      setLoading(false);
+      // Force refresh cart items when cart page loads
+      fetchCartItems(true); // Force fetch on cart page load
     }
-  }, [isAuthenticated(), user?.id]);
+  }, [user?.id, isAuthenticated]);
 
-  const fetchCartItems = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/users/${user.id}/cart`);
-      if (response.ok) {
-        const data = await response.json();
-        setCartItems(data.cartItems || []);
-        
-        // Fetch product details for each cart item
-        if (data.cartItems && data.cartItems.length > 0) {
-          const productPromises = data.cartItems.map(item => 
-            fetch(`/api/products/${item.product_id}`).then(res => res.json())
-          );
-          const productDetails = await Promise.all(productPromises);
-          setProducts(productDetails);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching cart items:', error);
-      showNotification('Failed to load cart items', 'error');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    console.log('Cart items changed:', cartItems.length);
+    if (cartItems.length > 0) {
+      fetchProductDetails();
     }
-  };
+  }, [cartItems]);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type, isVisible: true });
@@ -51,58 +59,60 @@ function Cart() {
     setNotification(prev => ({ ...prev, isVisible: false }));
   };
 
-  const updateQuantity = async (productId, newQuantity) => {
-    try {
-      const response = await fetch(`/api/users/${user.id}/cart`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, quantity: newQuantity })
-      });
-
-      if (response.ok) {
-        showNotification('Cart updated successfully!', 'success');
-        fetchCartItems(); // Refresh cart
-      } else {
-        const error = await response.json();
-        showNotification(error.error || 'Failed to update cart', 'error');
-      }
-    } catch (error) {
-      showNotification('Failed to update cart. Please try again.', 'error');
+  const handleUpdateQuantity = async (productId, newQuantity) => {
+    const success = await updateQuantity(productId, newQuantity);
+    if (success) {
+      showNotification('Cart updated successfully!', 'success');
     }
   };
 
   const removeItem = async (productId) => {
-    try {
-      const response = await fetch(`/api/users/${user.id}/cart`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId })
-      });
-
-      if (response.ok) {
-        showNotification('Item removed from cart!', 'success');
-        fetchCartItems(); // Refresh cart
-      } else {
-        const error = await response.json();
-        showNotification(error.error || 'Failed to remove item', 'error');
-      }
-    } catch (error) {
-      showNotification('Failed to remove item. Please try again.', 'error');
+    const success = await removeFromCart(productId);
+    if (success) {
+      showNotification('Item removed from cart!', 'success');
+    } else {
+      showNotification('Failed to remove item', 'error');
     }
   };
 
   const getProductById = (productId) => {
-    return products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
+    console.log('Getting product by ID:', productId, 'Found:', product);
+    return product;
   };
 
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
-      const product = getProductById(item.product_id);
-      if (product) {
-        return total + (product.sell_price * item.quantity);
-      }
-      return total;
-    }, 0);
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setAddress(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateAddress = () => {
+    const requiredFields = ['fullName', 'street', 'city', 'state', 'zipCode', 'country', 'phone'];
+    const missingFields = requiredFields.filter(field => !address[field].trim());
+    
+    if (missingFields.length > 0) {
+      showNotification('Please fill in all required address fields', 'error');
+      return false;
+    }
+    return true;
+  };
+
+  const handleCheckout = () => {
+    if (!user?.id) {
+      showNotification('Please login to proceed with checkout', 'error');
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      showNotification('Your cart is empty', 'error');
+      return;
+    }
+
+    // Navigate to checkout page
+    navigate('/checkout');
   };
 
   if (!isAuthenticated()) {
@@ -162,14 +172,14 @@ function Cart() {
                     <label>Quantity:</label>
                     <div className="quantity-controls">
                       <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                        onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
                         disabled={item.quantity <= 1}
                       >
                         -
                       </button>
                       <span>{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                        onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
                       >
                         +
                       </button>
@@ -206,7 +216,109 @@ function Cart() {
               <span>Total:</span>
               <span>${getTotalPrice().toFixed(2)}</span>
             </div>
-            <button className="checkout-btn">Proceed to Checkout</button>
+            
+            <div className="address-section">
+              <div className="address-header">
+                <h4>Shipping Address</h4>
+                <button 
+                  className="toggle-address-btn"
+                  onClick={() => setShowAddressForm(!showAddressForm)}
+                >
+                  {showAddressForm ? 'Hide Address Form' : 'Add/Edit Address'}
+                </button>
+              </div>
+              
+              {showAddressForm && (
+                <div className="address-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="fullName">Full Name *</label>
+                      <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        value={address.fullName}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="phone">Phone Number *</label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={address.phone}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="street">Street Address *</label>
+                    <input
+                      type="text"
+                      id="street"
+                      name="street"
+                      value={address.street}
+                      onChange={handleAddressChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="city">City *</label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={address.city}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="state">State/Province *</label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={address.state}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="zipCode">ZIP/Postal Code *</label>
+                      <input
+                        type="text"
+                        id="zipCode"
+                        name="zipCode"
+                        value={address.zipCode}
+                        onChange={handleAddressChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="country">Country *</label>
+                    <input
+                      type="text"
+                      id="country"
+                      name="country"
+                      value={address.country}
+                      onChange={handleAddressChange}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <button className="checkout-btn" onClick={handleCheckout}>Proceed to Checkout</button>
           </div>
         </div>
       )}

@@ -455,6 +455,86 @@ class User {
     }
   }
 
+  // Save user preferences (address and payment info)
+  static async saveUserPreferences(userId, preferences) {
+    try {
+      const { savedAddress, savedPaymentInfo } = preferences;
+      
+      const updateFields = [];
+      const updateValues = [];
+      
+      if (savedAddress) {
+        updateFields.push('saved_address = ?');
+        updateValues.push(JSON.stringify(savedAddress));
+      }
+      
+      if (savedPaymentInfo) {
+        updateFields.push('saved_payment_info = ?');
+        updateValues.push(JSON.stringify(savedPaymentInfo));
+      }
+      
+      if (updateFields.length === 0) {
+        throw new Error('No preferences to save');
+      }
+      
+      updateValues.push(userId);
+      
+      await pool.execute(
+        `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving user preferences:', error);
+      throw new Error(`Failed to save user preferences: ${error.message}`);
+    }
+  }
+
+  // Get user preferences
+  static async getUserPreferences(userId) {
+    try {
+      console.log('Getting user preferences for user ID:', userId);
+      
+      const [rows] = await pool.execute(
+        'SELECT saved_address, saved_payment_info FROM users WHERE id = ?',
+        [userId]
+      );
+      
+      console.log('Database query result:', rows);
+      
+      if (rows.length === 0) {
+        console.log('User not found in database');
+        // Return empty preferences instead of throwing error
+        return {
+          savedAddress: null,
+          savedPaymentInfo: null
+        };
+      }
+      
+      const user = rows[0];
+      console.log('User data from database:', user);
+      
+      const preferences = {
+        savedAddress: user.saved_address ? JSON.parse(user.saved_address) : null,
+        savedPaymentInfo: user.saved_payment_info ? JSON.parse(user.saved_payment_info) : null
+      };
+      
+      console.log('Parsed preferences:', preferences);
+      return preferences;
+    } catch (error) {
+      console.error('Error getting user preferences:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Return empty preferences instead of throwing error
+      return {
+        savedAddress: null,
+        savedPaymentInfo: null
+      };
+    }
+  }
+
   toJSON() {
     return {
       id: this.id,

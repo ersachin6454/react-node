@@ -15,7 +15,9 @@ const {
   removeFromCart,
   updateCartQuantity,
   getCart,
-  getCartItemCount
+  getCartItemCount,
+  saveUserPreferences,
+  getUserPreferences
 } = require('../controllers/userController');
 
 // GET /api/users - Get all users
@@ -64,5 +66,12 @@ router.get('/:userId/cart', getCart);
 
 // GET /api/users/:userId/cart/count - Get cart item count
 router.get('/:userId/cart/count', getCartItemCount);
+
+// User preferences routes
+// POST /api/users/:userId/preferences - Save user preferences
+router.post('/:userId/preferences', saveUserPreferences);
+
+// GET /api/users/:userId/preferences - Get user preferences
+router.get('/:userId/preferences', getUserPreferences);
 
 module.exports = router;

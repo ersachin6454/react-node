@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -248,29 +249,48 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ error: 'Product ID is required' });
     }
 
-    const cartItems = await User.addToCart(userId, productId, quantity);
-    console.log('Cart result:', cartItems);
-    res.json({ message: 'Added to cart successfully', cartItems });
+    const cart = new Cart();
+    await cart.addItem(userId, productId, quantity);
+
+    res.json({ message: 'Item added to cart successfully' });
   } catch (error) {
     console.error('Error adding to cart:', error);
-    res.status(500).json({ error: 'Failed to add to cart' });
+    res.status(500).json({ error: 'Failed to add item to cart' });
   }
 };
 
 const removeFromCart = async (req, res) => {
   try {
     const { userId } = req.params;
+    console.log('Remove from cart - Full request object:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body,
+      params: req.params
+    });
+    
+    // Check if body is undefined or empty
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error('Request body is empty or undefined');
+      return res.status(400).json({ error: 'Request body is required' });
+    }
+    
     const { productId } = req.body;
 
     if (!productId) {
+      console.error('Product ID is missing from request body');
       return res.status(400).json({ error: 'Product ID is required' });
     }
 
-    const cartItems = await User.removeFromCart(userId, productId);
-    res.json({ message: 'Removed from cart successfully', cartItems });
+    console.log('Removing product from cart:', productId, 'for user:', userId);
+    const cart = new Cart();
+    await cart.removeItem(userId, productId);
+
+    res.json({ message: 'Item removed from cart successfully' });
   } catch (error) {
     console.error('Error removing from cart:', error);
-    res.status(500).json({ error: 'Failed to remove from cart' });
+    res.status(500).json({ error: 'Failed to remove item from cart' });
   }
 };
 
@@ -283,8 +303,10 @@ const updateCartQuantity = async (req, res) => {
       return res.status(400).json({ error: 'Product ID and quantity are required' });
     }
 
-    const cartItems = await User.updateCartQuantity(userId, productId, quantity);
-    res.json({ message: 'Cart quantity updated successfully', cartItems });
+    const cart = new Cart();
+    await cart.updateQuantity(userId, productId, quantity);
+
+    res.json({ message: 'Cart quantity updated successfully' });
   } catch (error) {
     console.error('Error updating cart quantity:', error);
     res.status(500).json({ error: 'Failed to update cart quantity' });
@@ -294,7 +316,8 @@ const updateCartQuantity = async (req, res) => {
 const getCart = async (req, res) => {
   try {
     const { userId } = req.params;
-    const cartItems = await User.getCart(userId);
+    const cart = new Cart();
+    const cartItems = await cart.getUserCart(userId);
     res.json({ cartItems });
   } catch (error) {
     console.error('Error getting cart:', error);
@@ -305,11 +328,48 @@ const getCart = async (req, res) => {
 const getCartItemCount = async (req, res) => {
   try {
     const { userId } = req.params;
-    const count = await User.getCartItemCount(userId);
+    const cart = new Cart();
+    const count = await cart.getCartCount(userId);
     res.json({ count });
   } catch (error) {
     console.error('Error getting cart item count:', error);
     res.status(500).json({ error: 'Failed to get cart item count' });
+  }
+};
+
+// Save user preferences (address and payment info)
+const saveUserPreferences = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { savedAddress, savedPaymentInfo } = req.body;
+
+    await User.saveUserPreferences(userId, { savedAddress, savedPaymentInfo });
+    res.json({ message: 'User preferences saved successfully' });
+  } catch (error) {
+    console.error('Error saving user preferences:', error);
+    res.status(500).json({ error: 'Failed to save user preferences' });
+  }
+};
+
+// Get user preferences
+const getUserPreferences = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('Controller: Getting preferences for user:', userId);
+    
+    const preferences = await User.getUserPreferences(userId);
+    console.log('Controller: Retrieved preferences:', preferences);
+    
+    res.json(preferences);
+  } catch (error) {
+    console.error('Error getting user preferences:', error);
+    console.error('Error details:', error.message);
+    
+    // Return empty preferences instead of error
+    res.json({
+      savedAddress: null,
+      savedPaymentInfo: null
+    });
   }
 };
 
@@ -351,5 +411,7 @@ module.exports = {
   updateCartQuantity,
   getCart,
   getCartItemCount,
+  saveUserPreferences,
+  getUserPreferences,
   debugUserData
 };
