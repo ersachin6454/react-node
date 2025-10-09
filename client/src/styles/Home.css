@@ -1,0 +1,500 @@
+/* Home Container */
+.home-container {
+  width: 100%;
+  height: 70vh;
+  overflow: hidden;
+}
+
+/* Slick Slider Overrides */
+.home-container .slick-slider {
+  height: 70vh;
+  position: relative;
+}
+
+.home-container .slick-list {
+  height: 70vh;
+  overflow: hidden;
+}
+
+.home-container .slick-track {
+  height: 70vh;
+  display: flex;
+}
+
+.home-container .slick-slide {
+  height: 70vh;
+  float: none;
+}
+
+.home-container .slick-slide > div {
+  height: 70vh;
+}
+
+/* Slide Styling */
+.slide {
+  position: relative;
+  height: 70vh;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.slide-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 40px;
+  border-radius: 15px;
+  max-width: 600px;
+  margin: 0 20px;
+  backdrop-filter: blur(10px);
+}
+
+.slide-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.slide-description {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.slide-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.slide-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Custom Arrow Styling */
+.slick-arrow {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: none !important;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  font-size: 1.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(10px) !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+}
+
+.slick-arrow:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+.slick-arrow:before {
+  display: none !important;
+}
+
+.slick-prev {
+  left: 30px !important;
+}
+
+.slick-next {
+  right: 30px !important;
+}
+
+/* Hide default slick arrows */
+.slick-prev:before,
+.slick-next:before {
+  display: none !important;
+}
+
+/* Custom Dots Styling */
+.slick-dots {
+  position: absolute !important;
+  bottom: 30px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  gap: 10px !important;
+  z-index: 10 !important;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.slick-dots li {
+  margin: 0 !important;
+}
+
+.slick-dot-custom {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.slick-dot-custom span {
+  display: none;
+}
+
+.slick-dots li.slick-active .slick-dot-custom {
+  background: white !important;
+  transform: scale(1.2) !important;
+}
+
+.slick-dot-custom:hover {
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Ensure proper swipe functionality */
+.home-container .slick-slider {
+  touch-action: pan-y;
+}
+
+.home-container .slick-list {
+  touch-action: pan-y;
+}
+
+/* Fix for smooth sliding */
+.home-container .slick-track {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Ensure slides are properly positioned for swipe */
+.home-container .slick-slide {
+  transition: transform 0.5s ease;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .home-container {
+    height: 60vh;
+  }
+  
+  .home-container .slick-slider,
+  .home-container .slick-list,
+  .home-container .slick-track,
+  .home-container .slick-slide,
+  .home-container .slick-slide > div {
+    height: 60vh;
+  }
+  
+  .slide {
+    height: 60vh;
+  }
+  
+  .slide-content {
+    padding: 30px 20px;
+    margin: 0 15px;
+  }
+  
+  .slide-title {
+    font-size: 2.2rem;
+  }
+  
+  .slide-description {
+    font-size: 1.1rem;
+  }
+  
+  .slide-button {
+    padding: 12px 25px;
+    font-size: 1rem;
+  }
+  
+  .slick-arrow {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.2rem !important;
+  }
+  
+  .slick-prev {
+    left: 15px !important;
+  }
+  
+  .slick-next {
+    right: 15px !important;
+  }
+  
+  .slick-dots {
+    bottom: 20px !important;
+  }
+  
+  .slick-dot-custom {
+    width: 10px !important;
+    height: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container {
+    height: 50vh;
+  }
+  
+  .home-container .slick-slider,
+  .home-container .slick-list,
+  .home-container .slick-track,
+  .home-container .slick-slide,
+  .home-container .slick-slide > div {
+    height: 50vh;
+  }
+  
+  .slide {
+    height: 50vh;
+  }
+  
+  .slide-content {
+    padding: 20px 15px;
+    margin: 0 10px;
+  }
+  
+  .slide-title {
+    font-size: 1.8rem;
+  }
+  
+  .slide-description {
+    font-size: 1rem;
+  }
+  
+  .slide-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Latest Products Section */
+.latest-products-section {
+  padding: 60px 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 400px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 50px;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #666;
+  padding: 40px 0;
+}
+
+.latest-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.product-card {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.product-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.product-image {
+  width: 100%;
+  height: 250px;
+  overflow: hidden;
+  position: relative;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+.product-info {
+  padding: 25px;
+}
+
+.product-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.product-description {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.current-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.original-price {
+  font-size: 1rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.product-quantity {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Responsive Design for Latest Products */
+@media (max-width: 768px) {
+  .latest-products-section {
+    padding: 40px 0;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    margin-bottom: 30px;
+  }
+  
+  .latest-products-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: 400px;
+  }
+  
+  .product-image {
+    height: 200px;
+  }
+  
+  .product-info {
+    padding: 20px;
+  }
+  
+  .product-name {
+    font-size: 1.2rem;
+  }
+  
+  .current-price {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .latest-products-section {
+    padding: 30px 0;
+  }
+  
+  .container {
+    padding: 0 15px;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+  }
+  
+  .latest-products-grid {
+    gap: 15px;
+  }
+  
+  .product-image {
+    height: 180px;
+  }
+  
+  .product-info {
+    padding: 15px;
+  }
+  
+  .product-name {
+    font-size: 1.1rem;
+  }
+  
+  .product-description {
+    font-size: 0.9rem;
+  }
+}
