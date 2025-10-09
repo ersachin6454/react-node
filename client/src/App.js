@@ -4,6 +4,8 @@ import Register from './pages/Register';
 import Products from './pages/Products';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import NavigationBar from './components/NavigationBar';
 import Home from './components/Home';
 import Footer from './components/Footer';
@@ -28,6 +30,8 @@ function App() {
                     <Route path="/products" element={<Products />} />
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   </Routes>
           </main>
           <Footer />

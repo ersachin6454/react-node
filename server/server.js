@@ -18,6 +18,7 @@ app.use(bodyParser.json());
 app.use('/api/items', require('./routes/items'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Database health check endpoint
 app.get('/api/health', async (req, res) => {

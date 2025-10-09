@@ -99,13 +99,23 @@ function NavigationBar() {
             <span>Cart</span>
           </Link>
           {isAuthenticated() ? (
-            <button 
-              className="nav-link"
-              onClick={handleLogout}
-            >
-              <FaSignOutAlt className="nav-icon" />
-              <span>Logout</span>
-            </button>
+            <>
+              <button 
+                className="nav-link"
+                onClick={handleLogout}
+              >
+                <FaSignOutAlt className="nav-icon" />
+                <span>Logout</span>
+              </button>
+              {user?.role === 'admin' && (
+                <Link 
+                  to="/admin/dashboard" 
+                  className="nav-link admin-link"
+                >
+                  <span>Admin</span>
+                </Link>
+              )}
+            </>
           ) : (
             <button 
               className="nav-link"

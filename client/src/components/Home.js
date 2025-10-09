@@ -11,21 +11,15 @@ function Home() {
   useEffect(() => {
     const fetchLatestProducts = async () => {
       try {
-        console.log('Fetching latest products...');
         const response = await fetch(`/api/products?t=${Date.now()}`);
-        console.log('Response status:', response.status);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const products = await response.json();
-        console.log('Products received:', products);
-        console.log('Number of products:', products.length);
-        
         // Get the first 2 products (latest ones)
-        const latestTwo = products.slice(0, 2);
-        console.log('Latest 2 products:', latestTwo);
+        const latestTwo = products.slice(0, 3);
         setLatestProducts(latestTwo);
         setLoading(false);
       } catch (error) {
@@ -81,7 +75,7 @@ function Home() {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 3000,
+    autoplaySpeed: 2000,
     pauseOnHover: true,
     fade: false,
     swipe: true,
@@ -122,102 +116,39 @@ function Home() {
           </div>
         ))}
       </Slider>
-      
-      {/* Latest Products Section */}
-      <div className="latest-products-section" style={{
-        backgroundColor: 'red', 
-        minHeight: '200px',
-        position: 'relative',
-        zIndex: 10000,
-        border: '5px solid orange'
-      }}>
-        <div className="container" style={{backgroundColor: 'purple', padding: '20px'}}>
-          <h2 className="section-title" style={{color: 'white', fontSize: '30px'}}>Latest Products</h2>
-          <div style={{backgroundColor: 'yellow', padding: '20px', margin: '10px'}}>
-            <h3>DEBUG INFO:</h3>
-            <p>Loading: {loading.toString()}</p>
-            <p>Products count: {latestProducts.length}</p>
-            <p>Products: {JSON.stringify(latestProducts, null, 2)}</p>
-          </div>
-          
+      <div className="latest-products-section">
+        <div className="container">
+          <h2 className="section-title">Latest Products</h2>
           {loading ? (
             <div className="loading">Loading latest products...</div>
-          ) : latestProducts.length === 0 ? (
-            <div className="loading">No products available</div>
           ) : (
-            <div className="latest-products-grid" style={{backgroundColor: 'lightgreen', padding: '20px', minHeight: '400px'}}>
-              {/* HARDCODED TEST PRODUCT */}
-              <div style={{
-                backgroundColor: 'lime',
-                border: '5px solid black',
-                padding: '20px',
-                margin: '10px',
-                fontSize: '20px',
-                fontWeight: 'bold'
-              }}>
-                <h3>HARDCODED TEST PRODUCT</h3>
-                <p>This should be visible!</p>
-              </div>
-              
-              {console.log('Rendering products:', latestProducts)}
-              {latestProducts.map((product) => {
-                console.log('Product data:', product);
-                console.log('Product images:', product.images, typeof product.images);
-                return (
-                <div key={product.id} className="product-card" style={{
-                  border: '3px solid red', 
-                  margin: '10px', 
-                  backgroundColor: 'white',
-                  minHeight: '300px',
-                  zIndex: 9999,
-                  position: 'relative'
-                }}>
+            <div className="latest-products-grid">
+              {latestProducts.map((product) => (
+                <div key={product.id} className="product-card">
                   <div className="product-image">
-                    {(() => {
-                      let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image';
-                      
-                      if (product.images) {
-                        try {
-                          // If images is a string, parse it
-                          const images = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-                          if (Array.isArray(images) && images.length > 0) {
-                            imageUrl = images[0];
-                          }
-                        } catch (error) {
-                          console.log('Error parsing images for product:', product.id, error);
-                        }
-                      }
-                      
-                      return (
-                        <img 
-                          src={imageUrl} 
-                          alt={product.name}
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
-                          }}
-                        />
-                      );
-                    })()}
+                    <img 
+                      src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x250?text=No+Image'} 
+                      alt={product.name}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/300x250?text=Image+Not+Found';
+                      }}
+                    />
                   </div>
-                  <div className="product-info" style={{padding: '20px', backgroundColor: 'yellow'}}>
-                    <h3 className="product-name" style={{color: 'black', fontSize: '20px', fontWeight: 'bold'}}>{product.name}</h3>
-                    <p className="product-description" style={{color: 'black'}}>{product.description}</p>
-                    <div className="product-price" style={{color: 'red', fontSize: '18px', fontWeight: 'bold'}}>
+                  <div className="product-info">
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-description">{product.description}</p>
+                    <div className="product-price">
                       <span className="current-price">${product.sell_price}</span>
-                      {product.price !== product.sell_price && (
+                      {product.price && product.price > product.sell_price && (
                         <span className="original-price">${product.price}</span>
                       )}
                     </div>
-                    <div className="product-quantity" style={{color: 'blue', fontSize: '16px'}}>
-                      Stock: {product.quantity}
-                    </div>
-                    <div style={{color: 'purple', fontSize: '14px', marginTop: '10px'}}>
-                      DEBUG: Product ID {product.id}
+                    <div className="product-quantity">
+                      Stock: {product.quantity} available
                     </div>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
           )}
         </div>
