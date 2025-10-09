@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AddProduct from '../components/AddProduct';
 import ProductList from '../components/ProductList';
 import EditProduct from '../components/EditProduct';
+import UserManagement from '../components/UserManagement';
 import '../styles/AdminDashboard.css';
 
 function AdminDashboard() {
@@ -109,12 +110,7 @@ function AdminDashboard() {
             )}
           </>
         )}
-        {activeTab === 'users' && (
-          <div className="admin-section">
-            <h2>User Management</h2>
-            <p>User management functionality will be implemented here.</p>
-          </div>
-        )}
+        {activeTab === 'users' && <UserManagement />}
         {activeTab === 'orders' && (
           <div className="admin-section">
             <h2>Order Management</h2>

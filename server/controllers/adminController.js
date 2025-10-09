@@ -29,7 +29,7 @@ const adminLogin = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Generate JWT token with 1 hour expiration for admin
     const token = jwt.sign(
       { 
         id: admin.id, 
@@ -37,7 +37,7 @@ const adminLogin = async (req, res) => {
         role: admin.role 
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      { expiresIn: '1h' }
     );
 
     res.json({
@@ -120,8 +120,133 @@ const getAdminProfile = async (req, res) => {
   }
 };
 
+// Get all users
+const getAllUsers = async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+    );
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({ error: 'Server error fetching users' });
+  }
+};
+
+// Create new user (admin only)
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role = 'user' } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
+    // Check if user already exists
+    const [existingUser] = await pool.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const [result] = await pool.execute(
+      'INSERT INTO users (name, email, password, confirm_password, role) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, hashedPassword, role]
+    );
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: {
+        id: result.insertId,
+        name,
+        email,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Server error creating user' });
+  }
+};
+
+// Update user role
+const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Valid role is required (user or admin)' });
+    }
+
+    // Check if user exists
+    const [existingUser] = await pool.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (existingUser.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update user role
+    await pool.execute(
+      'UPDATE users SET role = ? WHERE id = ?',
+      [role, id]
+    );
+
+    res.json({ message: 'User role updated successfully' });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    res.status(500).json({ error: 'Server error updating user role' });
+  }
+};
+
+// Delete user
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists
+    const [existingUser] = await pool.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (existingUser.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent deletion of admin users
+    if (existingUser[0].role === 'admin') {
+      return res.status(400).json({ error: 'Cannot delete admin users' });
+    }
+
+    // Delete user
+    await pool.execute('DELETE FROM users WHERE id = ?', [id]);
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Server error deleting user' });
+  }
+};
+
 module.exports = {
   adminLogin,
   createAdmin,
-  getAdminProfile
+  getAdminProfile,
+  getAllUsers,
+  createUser,
+  updateUserRole,
+  deleteUser
 };

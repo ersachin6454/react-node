@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { adminLogin, createAdmin, getAdminProfile } = require('../controllers/adminController');
+const { 
+  adminLogin, 
+  createAdmin, 
+  getAdminProfile,
+  getAllUsers,
+  createUser,
+  updateUserRole,
+  deleteUser
+} = require('../controllers/adminController');
 const adminAuth = require('../middleware/adminAuth');
 const { createProduct, getAllProducts, updateProduct, deleteProduct } = require('../controllers/productController');
 
@@ -16,5 +24,11 @@ router.post('/products', adminAuth, createProduct);
 router.get('/products', adminAuth, getAllProducts);
 router.put('/products/:id', adminAuth, updateProduct);
 router.delete('/products/:id', adminAuth, deleteProduct);
+
+// User management routes
+router.get('/users', adminAuth, getAllUsers);
+router.post('/users', adminAuth, createUser);
+router.put('/users/:id/role', adminAuth, updateUserRole);
+router.delete('/users/:id', adminAuth, deleteUser);
 
 module.exports = router;

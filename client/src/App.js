@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import NavigationBar from './components/NavigationBar';
 import Home from './components/Home';
 import Footer from './components/Footer';
+import SessionWarning from './components/SessionWarning';
 import { AuthProvider } from './contexts/AuthContext';
 import './styles/App.css';
 
@@ -35,6 +36,7 @@ function App() {
                   </Routes>
           </main>
           <Footer />
+          <SessionWarning />
         </div>
       </Router>
     </AuthProvider>

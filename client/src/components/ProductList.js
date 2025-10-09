@@ -84,54 +84,94 @@ function ProductList({ onEditProduct, onAddProduct }) {
           <p>No products found. Add your first product!</p>
         </div>
       ) : (
-        <div className="products-grid">
-          {products.map((product) => (
-            <div key={product.id} className="product-card">
-              <div className="product-image">
-                <img 
-                  src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/200x150?text=No+Image'} 
-                  alt={product.name}
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/200x150?text=Image+Not+Found';
-                  }}
-                />
-              </div>
-              
-              <div className="product-info">
-                <h3 className="product-name">{product.name}</h3>
-                <p className="product-description">{product.description}</p>
-                
-                <div className="product-details">
-                  <div className="price-info">
-                    <span className="current-price">${product.sell_price}</span>
-                    {product.price && product.price > product.sell_price && (
-                      <span className="original-price">${product.price}</span>
-                    )}
-                  </div>
-                  
-                  <div className="stock-info">
-                    <span className="stock-label">Stock:</span>
-                    <span className="stock-quantity">{product.quantity}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="product-actions">
-                <button 
-                  onClick={() => onEditProduct(product)}
-                  className="edit-btn"
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={() => setDeleteConfirm(product.id)}
-                  className="delete-btn"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="products-table-container">
+          <table className="products-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    <div className="product-image-cell">
+                      <img 
+                        src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/60x60?text=No+Image'} 
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/60x60?text=Image+Not+Found';
+                        }}
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-name-cell">
+                      <strong>{product.name}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-description-cell">
+                      {product.description ? (
+                        <span title={product.description}>
+                          {product.description.length > 50 
+                            ? `${product.description.substring(0, 50)}...` 
+                            : product.description
+                          }
+                        </span>
+                      ) : (
+                        <span className="no-description">No description</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-price-cell">
+                      <div className="current-price">${product.sell_price}</div>
+                      {product.price && product.price > product.sell_price && (
+                        <div className="original-price">${product.price}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-stock-cell">
+                      <span className={`stock-badge ${product.quantity > 10 ? 'in-stock' : product.quantity > 0 ? 'low-stock' : 'out-of-stock'}`}>
+                        {product.quantity}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-date-cell">
+                      {new Date(product.created_at).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="product-actions-cell">
+                      <button 
+                        onClick={() => onEditProduct(product)}
+                        className="edit-btn"
+                        title="Edit Product"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => setDeleteConfirm(product.id)}
+                        className="delete-btn"
+                        title="Delete Product"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
