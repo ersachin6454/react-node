@@ -14,7 +14,7 @@ async function addSpecificationsToProducts(connection) {
         if (columns.length === 0) {
             await connection.execute(
                 `ALTER TABLE products 
-         ADD COLUMN specifications TEXT NULL AFTER description`
+         ADD COLUMN specifications TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER description`
             );
             console.log('✅ Specifications column added successfully!');
         } else {

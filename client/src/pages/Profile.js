@@ -9,14 +9,12 @@ import '../styles/Profile.css';
 function Profile() {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
-    const [activeTab, setActiveTab] = useState('account'); // 'account', 'orders', 'wishlist'
+    const [activeTab, setActiveTab] = useState('account'); // 'account', 'orders'
     const [profile, setProfile] = useState({ name: '', email: '', mobile_number: '' });
     const [shippingAddresses, setShippingAddresses] = useState([]);
     const [orders, setOrders] = useState([]);
-    const [wishlistProducts, setWishlistProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [ordersLoading, setOrdersLoading] = useState(false);
-    const [wishlistLoading, setWishlistLoading] = useState(false);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -54,8 +52,6 @@ function Profile() {
     useEffect(() => {
         if (activeTab === 'orders' && user?.id) {
             fetchOrders();
-        } else if (activeTab === 'wishlist' && user?.id) {
-            fetchWishlist();
         }
     }, [activeTab, user?.id]);
 
@@ -255,71 +251,6 @@ function Profile() {
         }
     };
 
-    const fetchWishlist = async () => {
-        try {
-            setWishlistLoading(true);
-            const response = await fetch(`/api/users/${user.id}/wishlist`);
-            if (response.ok) {
-                const data = await response.json();
-                const wishlistIds = data.wishlist || [];
-
-                if (wishlistIds.length > 0) {
-                    // Convert all IDs to numbers and remove duplicates/invalid values
-                    const uniqueWishlist = [...new Set(
-                        wishlistIds
-                            .map(id => {
-                                const numId = typeof id === 'string' ? parseInt(id, 10) : id;
-                                return !isNaN(numId) && numId > 0 ? numId : null;
-                            })
-                            .filter(id => id !== null)
-                    )];
-
-                    const productPromises = uniqueWishlist.map(async (productId) => {
-                        try {
-                            const res = await fetch(`/api/products/${productId}`);
-                            if (res.ok) {
-                                return await res.json();
-                            }
-                            return null;
-                        } catch (error) {
-                            console.error(`Error fetching product ${productId}:`, error);
-                            return null;
-                        }
-                    });
-
-                    const productDetails = await Promise.all(productPromises);
-                    const validProducts = productDetails.filter(p => p !== null && p.id);
-                    setWishlistProducts(validProducts);
-                } else {
-                    setWishlistProducts([]);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching wishlist:', error);
-        } finally {
-            setWishlistLoading(false);
-        }
-    };
-
-    const removeFromWishlist = async (productId) => {
-        try {
-            const response = await fetch(`/api/users/${user.id}/wishlist`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId })
-            });
-
-            if (response.ok) {
-                showNotification('Item removed from wishlist!', 'success');
-                fetchWishlist(); // Refresh wishlist
-            } else {
-                const error = await response.json();
-                showNotification(error.error || 'Failed to remove item', 'error');
-            }
-        } catch (error) {
-            showNotification('Failed to remove item. Please try again.', 'error');
-        }
-    };
 
     if (loading) {
         return (
@@ -333,7 +264,7 @@ function Profile() {
         <div className="profile-container">
             <div className="profile-header">
                 <h1>My Profile</h1>
-                <p>Manage your account, orders, and wishlist</p>
+                <p>Manage your account and orders</p>
             </div>
 
             {/* Tabs */}
@@ -349,12 +280,6 @@ function Profile() {
                     onClick={() => setActiveTab('orders')}
                 >
                     Orders
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'wishlist' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('wishlist')}
-                >
-                    Wishlist
                 </button>
             </div>
 
@@ -709,52 +634,6 @@ function Profile() {
                 </div>
             )}
 
-            {activeTab === 'wishlist' && (
-                <div className="profile-section">
-                    <div className="section-header">
-                        <h2>My Wishlist</h2>
-                    </div>
-                    {wishlistLoading ? (
-                        <div className="loading">Loading wishlist...</div>
-                    ) : wishlistProducts.length === 0 ? (
-                        <div className="empty-state">
-                            <p>Your wishlist is empty</p>
-                            <button className="primary-btn" onClick={() => navigate('/products')}>
-                                Browse Products
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="wishlist-grid">
-                            {wishlistProducts.map((product) => (
-                                <div key={product.id} className="wishlist-item-card">
-                                    <div className="wishlist-item-image">
-                                        <img
-                                            src={product.images && product.images.length > 0
-                                                ? product.images[0]
-                                                : 'https://via.placeholder.com/200x200?text=No+Image'}
-                                            alt={product.name}
-                                            onClick={() => navigate(`/product/${product.id}`)}
-                                        />
-                                    </div>
-                                    <div className="wishlist-item-details">
-                                        <h3 onClick={() => navigate(`/product/${product.id}`)}>{product.name}</h3>
-                                        <p className="wishlist-item-price">${product.sell_price}</p>
-                                    </div>
-                                    <div className="wishlist-item-actions">
-                                        <button
-                                            className="remove-wishlist-btn"
-                                            onClick={() => removeFromWishlist(product.id)}
-                                            title="Remove from wishlist"
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
 
             <Notification
                 message={notification.message}

@@ -4,13 +4,16 @@ import '../styles/EditProduct.css';
 function EditProduct({ product, onSave, onCancel }) {
   const [formData, setFormData] = useState({
     name: '',
-    price: '',
-    sell_price: '',
     description: '',
     quantity: '',
     specifications: '',
     images: [],
-    is_active: true
+    is_active: true,
+    variant_prices: {
+      '400 gram': { price: '', sell_price: '' },
+      '800 gram': { price: '', sell_price: '' },
+      '1.2kg': { price: '', sell_price: '' }
+    }
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -22,13 +25,16 @@ function EditProduct({ product, onSave, onCancel }) {
     if (product) {
       setFormData({
         name: product.name || '',
-        price: product.price || '',
-        sell_price: product.sell_price || '',
         description: product.description || '',
         quantity: product.quantity || '',
         specifications: product.specifications || '',
         images: product.images || [],
-        is_active: product.is_active !== undefined ? product.is_active : true
+        is_active: product.is_active !== undefined ? product.is_active : true,
+        variant_prices: product.variant_prices || {
+          '400 gram': { price: '', sell_price: '' },
+          '800 gram': { price: '', sell_price: '' },
+          '1.2kg': { price: '', sell_price: '' }
+        }
       });
 
       // Set existing images
@@ -122,6 +128,50 @@ function EditProduct({ product, onSave, onCancel }) {
       // Combine existing and new images
       const allImages = [...existingImages, ...newImageUrls];
 
+      // Calculate default price from variant_prices
+      let defaultPrice = 0;
+      let defaultSellPrice = 0;
+      let defaultWeightVariant = '400 gram';
+
+      if (formData.variant_prices) {
+        const variants = ['400 gram', '800 gram', '1.2kg'];
+        for (const variant of variants) {
+          if (formData.variant_prices[variant] && formData.variant_prices[variant].price) {
+            defaultPrice = parseFloat(formData.variant_prices[variant].price) || 0;
+            defaultSellPrice = parseFloat(formData.variant_prices[variant].sell_price) || 0;
+            defaultWeightVariant = variant;
+            break;
+          }
+        }
+      }
+
+      // Prepare the data with proper types
+      const updateData = {
+        name: formData.name.trim(),
+        price: defaultPrice,
+        sell_price: defaultSellPrice,
+        description: formData.description || '',
+        quantity: parseInt(formData.quantity) || 0,
+        weight_variant: defaultWeightVariant,
+        variant_prices: formData.variant_prices || null,
+        specifications: formData.specifications || null,
+        images: allImages,
+        is_active: formData.is_active !== undefined ? formData.is_active : true
+      };
+
+      // Validate required fields
+      if (!updateData.name) {
+        setMessage('Product name is required');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.variant_prices || Object.keys(formData.variant_prices).length === 0) {
+        setMessage('At least one variant price is required');
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('adminToken');
       const response = await fetch(`/api/admin/products/${product.id}`, {
         method: 'PUT',
@@ -129,10 +179,7 @@ function EditProduct({ product, onSave, onCancel }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          images: allImages
-        }),
+        body: JSON.stringify(updateData),
       });
 
       const data = await response.json();
@@ -144,6 +191,7 @@ function EditProduct({ product, onSave, onCancel }) {
         }, 1500);
       } else {
         setMessage(data.error || 'Failed to update product');
+        console.error('Update error:', data);
       }
     } catch (error) {
       console.error('Error updating product:', error);
@@ -196,37 +244,147 @@ function EditProduct({ product, onSave, onCancel }) {
               placeholder="Enter quantity"
             />
           </div>
+
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="price">Original Price *</label>
-            <input
-              type="number"
-              id="price"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-              placeholder="Enter original price"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="sell_price">Selling Price *</label>
-            <input
-              type="number"
-              id="sell_price"
-              name="sell_price"
-              value={formData.sell_price}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-              placeholder="Enter selling price"
-            />
+        <div className="form-group">
+          <label>Variant Prices *</label>
+          <div className="variant-prices-section" style={{ marginTop: '10px' }}>
+            <div className="variant-price-row" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>400 gram</label>
+              <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['400 gram']?.price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '400 gram': {
+                          ...(formData.variant_prices['400 gram'] || {}),
+                          price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['400 gram']?.sell_price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '400 gram': {
+                          ...(formData.variant_prices['400 gram'] || {}),
+                          sell_price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="variant-price-row" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>800 gram</label>
+              <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['800 gram']?.price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '800 gram': {
+                          ...(formData.variant_prices['800 gram'] || {}),
+                          price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['800 gram']?.sell_price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '800 gram': {
+                          ...(formData.variant_prices['800 gram'] || {}),
+                          sell_price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="variant-price-row" style={{ padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>1.2kg</label>
+              <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['1.2kg']?.price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '1.2kg': {
+                          ...(formData.variant_prices['1.2kg'] || {}),
+                          price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.variant_prices['1.2kg']?.sell_price || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      variant_prices: {
+                        ...formData.variant_prices,
+                        '1.2kg': {
+                          ...(formData.variant_prices['1.2kg'] || {}),
+                          sell_price: e.target.value
+                        }
+                      }
+                    })}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -74,7 +74,7 @@
 }
 
 .section-header h2 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     color: #333;
     margin: 0;
 }
@@ -283,6 +283,10 @@
 
 .address-content {
     margin-bottom: 15px;
+}
+
+.address-card.default .address-content {
+    padding-top: 30px;
 }
 
 .address-content h3 {
@@ -595,10 +599,6 @@
         border-bottom-color: #e0e0e0;
     }
 
-    .wishlist-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 15px;
-    }
 
     .order-item-card-screenshot {
         flex-direction: column;
@@ -635,7 +635,7 @@
     }
 
     .section-header h2 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 
     .form-grid {

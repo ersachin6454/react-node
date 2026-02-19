@@ -77,21 +77,41 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, price, sell_price, description, images, quantity, specifications, is_active } = req.body;
+    const { name, price, sell_price, description, images, quantity, specifications, is_active, weight_variant, variant_prices } = req.body;
 
     // Basic validation
-    if (!name || !price || !sell_price) {
-      return res.status(400).json({ error: 'Name, price, and sell_price are required' });
+    if (!name) {
+      return res.status(400).json({ error: 'Product name is required' });
+    }
+
+    // Calculate default price and sell_price from variant_prices if not provided
+    let defaultPrice = price ? parseFloat(price) : 0;
+    let defaultSellPrice = sell_price ? parseFloat(sell_price) : 0;
+    let defaultWeightVariant = weight_variant || '400 gram';
+
+    if (variant_prices) {
+      // Use first available variant as default
+      const variants = ['400 gram', '800 gram', '1.2kg'];
+      for (const variant of variants) {
+        if (variant_prices[variant] && variant_prices[variant].price) {
+          defaultPrice = parseFloat(variant_prices[variant].price) || 0;
+          defaultSellPrice = parseFloat(variant_prices[variant].sell_price) || 0;
+          defaultWeightVariant = variant;
+          break;
+        }
+      }
     }
 
     const product = new Product();
     const newProduct = await product.create({
       name,
-      price: parseFloat(price),
-      sell_price: parseFloat(sell_price),
+      price: defaultPrice,
+      sell_price: defaultSellPrice,
       description: description || '',
       images: images || [],
       quantity: parseInt(quantity) || 0,
+      weight_variant: defaultWeightVariant,
+      variant_prices: variant_prices || null,
       specifications: specifications || null,
       is_active: is_active !== undefined ? is_active : true
     });
@@ -106,11 +126,11 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, sell_price, description, images, quantity, specifications, is_active } = req.body;
+    const { name, price, sell_price, description, images, quantity, specifications, is_active, weight_variant, variant_prices } = req.body;
 
     // Basic validation
-    if (!name || !price || !sell_price) {
-      return res.status(400).json({ error: 'Name, price, and sell_price are required' });
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Product name is required' });
     }
 
     const product = new Product();
@@ -121,21 +141,65 @@ const updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Calculate default price and sell_price from variant_prices if not provided
+    let defaultPrice = price ? parseFloat(price) : (existingProduct.price || 0);
+    let defaultSellPrice = sell_price ? parseFloat(sell_price) : (existingProduct.sell_price || 0);
+    let defaultWeightVariant = weight_variant || existingProduct.weight_variant || '400 gram';
+
+    if (variant_prices) {
+      // Use first available variant as default
+      const variants = ['400 gram', '800 gram', '1.2kg'];
+      for (const variant of variants) {
+        if (variant_prices[variant] && variant_prices[variant].price) {
+          defaultPrice = parseFloat(variant_prices[variant].price) || 0;
+          defaultSellPrice = parseFloat(variant_prices[variant].sell_price) || 0;
+          defaultWeightVariant = variant;
+          break;
+        }
+      }
+    }
+
+    // Ensure images is an array
+    let imagesArray = [];
+    if (images) {
+      if (Array.isArray(images)) {
+        imagesArray = images;
+      } else if (typeof images === 'string') {
+        try {
+          imagesArray = JSON.parse(images);
+        } catch (e) {
+          imagesArray = [images];
+        }
+      } else {
+        imagesArray = [];
+      }
+    }
+
     const updatedProduct = await product.update(id, {
-      name,
-      price: parseFloat(price),
-      sell_price: parseFloat(sell_price),
+      name: name.trim(),
+      price: defaultPrice,
+      sell_price: defaultSellPrice,
       description: description || '',
-      images: images || [],
-      quantity: parseInt(quantity) || 0,
+      images: imagesArray,
+      quantity: quantity !== undefined && quantity !== null && quantity !== '' ? parseInt(quantity) : 0,
+      weight_variant: defaultWeightVariant,
+      variant_prices: variant_prices || existingProduct.variant_prices || null,
       specifications: specifications || null,
-      is_active: is_active !== undefined ? is_active : existingProduct.is_active
+      is_active: is_active !== undefined ? (is_active === true || is_active === 'true' || is_active === 1) : existingProduct.is_active
     });
 
     res.json(updatedProduct);
   } catch (error) {
     console.error('Error updating product:', error);
-    res.status(500).json({ error: 'Failed to update product' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+    res.status(500).json({
+      error: 'Failed to update product',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

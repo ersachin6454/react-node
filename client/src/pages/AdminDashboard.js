@@ -5,7 +5,6 @@ import ProductList from '../components/ProductList';
 import EditProduct from '../components/EditProduct';
 import UserManagement from '../components/UserManagement';
 import CartItemsList from '../components/CartItemsList';
-import WishlistItemsList from '../components/WishlistItemsList';
 import '../styles/AdminDashboard.css';
 
 function AdminDashboard() {
@@ -95,12 +94,6 @@ function AdminDashboard() {
         >
           Cart Items
         </button>
-        <button
-          className={`nav-btn ${activeTab === 'wishlist' ? 'active' : ''}`}
-          onClick={() => setActiveTab('wishlist')}
-        >
-          Wishlist Items
-        </button>
       </nav>
 
       <main className="admin-main">
@@ -132,7 +125,6 @@ function AdminDashboard() {
           </div>
         )}
         {activeTab === 'cart' && <CartItemsList />}
-        {activeTab === 'wishlist' && <WishlistItemsList />}
       </main>
     </div>
   );

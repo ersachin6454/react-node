@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaUser, FaHeart, FaShoppingCart, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
+import { FaUser, FaShoppingCart, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import ProfileModal from './ProfileModal';
@@ -87,14 +87,6 @@ function NavigationBar() {
           >
             <FaUser className="nav-icon" />
             <span>Products</span>
-          </Link>
-          <Link
-            to="/wishlist"
-            className={location.pathname === '/wishlist' ? 'nav-link active' : 'nav-link'}
-            onClick={closeMobileMenu}
-          >
-            <FaHeart className="nav-icon" />
-            <span>Wishlist</span>
           </Link>
           <Link
             to="/cart"

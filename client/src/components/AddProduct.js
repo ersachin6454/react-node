@@ -4,13 +4,16 @@ import '../styles/AddProduct.css';
 function AddProduct({ onBack, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
-    price: '',
-    sell_price: '',
     description: '',
     quantity: '',
     specifications: '',
     images: [],
-    is_active: true
+    is_active: true,
+    variant_prices: {
+      '400 gram': { price: '', sell_price: '' },
+      '800 gram': { price: '', sell_price: '' },
+      '1.2kg': { price: '', sell_price: '' }
+    }
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -157,13 +160,16 @@ function AddProduct({ onBack, onSave }) {
         setMessage('Product added successfully!');
         setFormData({
           name: '',
-          price: '',
-          sell_price: '',
           description: '',
           quantity: '',
           specifications: '',
           images: [],
-          is_active: true
+          is_active: true,
+          variant_prices: {
+            '400 gram': { price: '', sell_price: '' },
+            '800 gram': { price: '', sell_price: '' },
+            '1.2kg': { price: '', sell_price: '' }
+          }
         });
         setSelectedImages([]);
         setImagePreviews([]);
@@ -281,35 +287,144 @@ function AddProduct({ onBack, onSave }) {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="price">Original Price *</label>
-              <input
-                type="number"
-                id="price"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                step="0.01"
-                min="0"
-                placeholder="Enter original price"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="sell_price">Selling Price *</label>
-              <input
-                type="number"
-                id="sell_price"
-                name="sell_price"
-                value={formData.sell_price}
-                onChange={handleChange}
-                required
-                step="0.01"
-                min="0"
-                placeholder="Enter selling price"
-              />
+          <div className="form-group">
+            <label>Variant Prices *</label>
+            <div className="variant-prices-section" style={{ marginTop: '10px' }}>
+              <div className="variant-price-row" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>400 gram</label>
+                <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['400 gram'].price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '400 gram': {
+                            ...formData.variant_prices['400 gram'],
+                            price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['400 gram'].sell_price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '400 gram': {
+                            ...formData.variant_prices['400 gram'],
+                            sell_price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="variant-price-row" style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>800 gram</label>
+                <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['800 gram'].price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '800 gram': {
+                            ...formData.variant_prices['800 gram'],
+                            price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['800 gram'].sell_price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '800 gram': {
+                            ...formData.variant_prices['800 gram'],
+                            sell_price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="variant-price-row" style={{ padding: '15px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '1rem' }}>1.2kg</label>
+                <div className="variant-price-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Original Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['1.2kg'].price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '1.2kg': {
+                            ...formData.variant_prices['1.2kg'],
+                            price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#666' }}>Selling Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.variant_prices['1.2kg'].sell_price}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        variant_prices: {
+                          ...formData.variant_prices,
+                          '1.2kg': {
+                            ...formData.variant_prices['1.2kg'],
+                            sell_price: e.target.value
+                          }
+                        }
+                      })}
+                      style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', width: '100%' }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
