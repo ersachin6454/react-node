@@ -67,13 +67,45 @@
   .footer-container {
     padding: 30px 15px 15px;
   }
-  
+
   .footer-content {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .footer-section h3 {
     font-size: 1.1rem;
+  }
+
+  .footer-section p {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-container {
+    padding: 25px 10px 15px;
+  }
+
+  .footer-section h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .footer-section p,
+  .footer-section ul li a {
+    font-size: 0.85rem;
+  }
+
+  .footer-bottom p {
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablet specific styles */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
   }
 }

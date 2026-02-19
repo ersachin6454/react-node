@@ -63,3 +63,25 @@
   color: #ff6b6b;
 }
 
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 0;
+  }
+
+  .loading,
+  .error {
+    height: calc(100vh - 60px);
+    font-size: 16px;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .loading,
+  .error {
+    height: calc(100vh - 55px);
+    font-size: 14px;
+  }
+}

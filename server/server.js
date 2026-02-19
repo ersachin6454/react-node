@@ -13,6 +13,11 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve uploaded images statically
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/items', require('./routes/items'));
@@ -22,6 +27,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 // Database health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -30,7 +36,7 @@ app.get('/api/health', async (req, res) => {
     const connection = await pool.getConnection();
     const [rows] = await connection.execute('SELECT 1 as status, NOW() as timestamp');
     connection.release();
-    
+
     res.json({
       status: 'healthy',
       database: 'connected',

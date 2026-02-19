@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
@@ -11,6 +11,8 @@ export const useCart = () => {
   return context;
 };
 
+const GUEST_CART_KEY = 'guest_cart';
+
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [cartCount, setCartCount] = useState(0);
@@ -19,26 +21,52 @@ export const CartProvider = ({ children }) => {
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const { user, isAuthenticated } = useAuth();
 
-  // Fetch cart items when user changes
-  useEffect(() => {
-    if (isAuthenticated() && user?.id) {
-      fetchCartItems();
-    } else {
+  // Load guest cart from localStorage
+  const loadGuestCart = useCallback(() => {
+    try {
+      const guestCart = localStorage.getItem(GUEST_CART_KEY);
+      if (guestCart) {
+        const items = JSON.parse(guestCart);
+        setCartItems(items);
+        setCartCount(items.reduce((total, item) => total + (item.quantity || 1), 0));
+      } else {
+        setCartItems([]);
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error('Error loading guest cart:', error);
       setCartItems([]);
       setCartCount(0);
     }
-  }, [user?.id, isAuthenticated]);
+  }, []);
+
+  // Save guest cart to localStorage
+  const saveGuestCart = useCallback((items) => {
+    try {
+      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
+      setCartItems(items);
+      setCartCount(items.reduce((total, item) => total + (item.quantity || 1), 0));
+    } catch (error) {
+      console.error('Error saving guest cart:', error);
+    }
+  }, []);
 
   const fetchCartItems = useCallback(async (force = false) => {
-    if (!user?.id || isFetching) return;
-    
+    if (!user?.id) return;
+
+    // Prevent multiple simultaneous fetches
+    if (isFetching && !force) {
+      console.log('Already fetching cart items, skipping...');
+      return;
+    }
+
     // Debounce: Don't fetch if last fetch was less than 2 seconds ago (unless forced)
     const now = Date.now();
     if (!force && (now - lastFetchTime) < 2000) {
       console.log('Skipping cart fetch - too recent');
       return;
     }
-    
+
     try {
       setIsFetching(true);
       setLoading(true);
@@ -64,14 +92,101 @@ export const CartProvider = ({ children }) => {
     }
   }, [user?.id, isFetching, lastFetchTime]);
 
-  const addToCart = async (productId, quantity = 1) => {
-    console.log('Adding to cart:', { productId, quantity, userId: user?.id });
-    
-    if (!user?.id) {
-      alert('Please login to add items to cart');
-      return false;
+  // Merge guest cart with user cart when user logs in
+  const mergeGuestCartWithUserCart = useCallback(async () => {
+    try {
+      const guestCart = localStorage.getItem(GUEST_CART_KEY);
+      if (guestCart && user?.id) {
+        const guestItems = JSON.parse(guestCart);
+        if (guestItems.length > 0) {
+          // Add each guest cart item to user's cart
+          for (const item of guestItems) {
+            try {
+              await fetch(`/api/users/${user.id}/cart`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  productId: item.product_id,
+                  quantity: item.quantity || 1
+                }),
+              });
+            } catch (error) {
+              console.error('Error merging cart item:', error);
+            }
+          }
+          // Clear guest cart after merging
+          localStorage.removeItem(GUEST_CART_KEY);
+        }
+      }
+    } catch (error) {
+      console.error('Error merging guest cart:', error);
+    }
+  }, [user?.id]);
+
+  // Track if we've already merged guest cart for this user
+  const hasMergedRef = useRef(false);
+  const lastUserIdRef = useRef(null);
+
+  // Fetch cart items when user changes (only once per user)
+  useEffect(() => {
+    // Reset merge flag when user changes
+    if (lastUserIdRef.current !== user?.id) {
+      hasMergedRef.current = false;
+      lastUserIdRef.current = user?.id;
     }
 
+    if (isAuthenticated() && user?.id) {
+      // Merge guest cart with user cart when user logs in (only once)
+      if (!hasMergedRef.current) {
+        hasMergedRef.current = true;
+        mergeGuestCartWithUserCart().then(() => {
+          fetchCartItems(true);
+        });
+      } else {
+        // Just fetch cart items if already merged
+        fetchCartItems(true);
+      }
+    } else {
+      // Load guest cart for non-authenticated users
+      loadGuestCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const addToCart = async (productId, quantity = 1) => {
+    console.log('Adding to cart:', { productId, quantity, userId: user?.id });
+
+    // If user is not logged in, use guest cart (localStorage)
+    if (!user?.id || !isAuthenticated()) {
+      try {
+        const currentGuestCart = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || '[]');
+        const productIdNum = parseInt(productId);
+        const quantityNum = parseInt(quantity);
+
+        // Check if product already exists in cart
+        const existingItemIndex = currentGuestCart.findIndex(
+          item => parseInt(item.product_id) === productIdNum
+        );
+
+        let updatedCart;
+        if (existingItemIndex !== -1) {
+          // Update quantity
+          updatedCart = [...currentGuestCart];
+          updatedCart[existingItemIndex].quantity = (updatedCart[existingItemIndex].quantity || 1) + quantityNum;
+        } else {
+          // Add new item
+          updatedCart = [...currentGuestCart, { product_id: productIdNum, quantity: quantityNum }];
+        }
+
+        saveGuestCart(updatedCart);
+        return true;
+      } catch (error) {
+        console.error('Error adding to guest cart:', error);
+        return false;
+      }
+    }
+
+    // If user is logged in, use server cart
     try {
       const response = await fetch(`/api/users/${user.id}/cart`, {
         method: 'POST',
@@ -91,19 +206,45 @@ export const CartProvider = ({ children }) => {
       } else {
         const error = await response.json();
         console.error('Add to cart error:', error);
-        alert(error.error || 'Failed to add item to cart');
         return false;
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Failed to add item to cart');
       return false;
     }
   };
 
   const updateQuantity = async (productId, quantity) => {
-    if (!user?.id) return false;
+    // If user is not logged in, update guest cart
+    if (!user?.id || !isAuthenticated()) {
+      try {
+        const currentGuestCart = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || '[]');
+        const productIdNum = parseInt(productId);
+        const quantityNum = parseInt(quantity);
 
+        if (quantityNum <= 0) {
+          // Remove item if quantity is 0 or less
+          const updatedCart = currentGuestCart.filter(
+            item => parseInt(item.product_id) !== productIdNum
+          );
+          saveGuestCart(updatedCart);
+        } else {
+          // Update quantity
+          const updatedCart = currentGuestCart.map(item =>
+            parseInt(item.product_id) === productIdNum
+              ? { ...item, quantity: quantityNum }
+              : item
+          );
+          saveGuestCart(updatedCart);
+        }
+        return true;
+      } catch (error) {
+        console.error('Error updating guest cart:', error);
+        return false;
+      }
+    }
+
+    // If user is logged in, update server cart
     try {
       const response = await fetch(`/api/users/${user.id}/cart`, {
         method: 'PUT',
@@ -124,8 +265,23 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = async (productId) => {
-    if (!user?.id) return false;
+    // If user is not logged in, remove from guest cart
+    if (!user?.id || !isAuthenticated()) {
+      try {
+        const currentGuestCart = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || '[]');
+        const productIdNum = parseInt(productId);
+        const updatedCart = currentGuestCart.filter(
+          item => parseInt(item.product_id) !== productIdNum
+        );
+        saveGuestCart(updatedCart);
+        return true;
+      } catch (error) {
+        console.error('Error removing from guest cart:', error);
+        return false;
+      }
+    }
 
+    // If user is logged in, remove from server cart
     try {
       const response = await fetch(`/api/users/${user.id}/cart`, {
         method: 'DELETE',
@@ -146,8 +302,20 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = async () => {
-    if (!user?.id) return false;
+    // If user is not logged in, clear guest cart
+    if (!user?.id || !isAuthenticated()) {
+      try {
+        localStorage.removeItem(GUEST_CART_KEY);
+        setCartItems([]);
+        setCartCount(0);
+        return true;
+      } catch (error) {
+        console.error('Error clearing guest cart:', error);
+        return false;
+      }
+    }
 
+    // If user is logged in, clear server cart
     try {
       const response = await fetch(`/api/users/${user.id}/cart`, {
         method: 'DELETE',

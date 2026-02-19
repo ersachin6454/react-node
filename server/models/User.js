@@ -51,7 +51,7 @@ class User {
         'INSERT INTO users (name, email, password, confirm_password) VALUES (?, ?, ?, ?)',
         [name, email, password, confirm_password]
       );
-      
+
       const newUser = await User.findById(result.insertId);
       return newUser;
     } catch (error) {
@@ -66,11 +66,11 @@ class User {
         'UPDATE users SET name = ?, email = ?, password = ?, confirm_password = ? WHERE id = ?',
         [name, email, password, confirm_password, id]
       );
-      
+
       if (result.affectedRows === 0) {
         return null;
       }
-      
+
       return await User.findById(id);
     } catch (error) {
       throw new Error(`Failed to update user: ${error.message}`);
@@ -109,7 +109,7 @@ class User {
 
         const user = userRows[0];
         let wishlist = [];
-        
+
         if (user.wishlist) {
           try {
             // Handle both JSON objects and JSON strings
@@ -126,9 +126,11 @@ class User {
           }
         }
 
-        // Always add the product to wishlist (allow duplicates)
-        wishlist.push(productIdNum);
-        
+        // Check if product already exists in wishlist (prevent duplicates)
+        if (!wishlist.includes(productIdNum)) {
+          wishlist.push(productIdNum);
+        }
+
         await connection.execute(
           'UPDATE users SET wishlist = ? WHERE id = ?',
           [JSON.stringify(wishlist), userId]
@@ -171,7 +173,7 @@ class User {
 
         const user = userRows[0];
         let wishlist = [];
-        
+
         if (user.wishlist) {
           try {
             // Handle both JSON objects and JSON strings
@@ -189,7 +191,7 @@ class User {
         }
 
         wishlist = wishlist.filter(id => parseInt(id) !== productIdNum);
-        
+
         await connection.execute(
           'UPDATE users SET wishlist = ? WHERE id = ?',
           [JSON.stringify(wishlist), userId]
@@ -211,30 +213,61 @@ class User {
 
   static async getWishlist(userId) {
     try {
+      console.log('Getting wishlist for user ID:', userId);
       const user = await User.findById(userId);
+
       if (!user) {
         throw new Error('User not found');
       }
 
+      console.log('User wishlist raw data:', user.wishlist);
+      console.log('User wishlist type:', typeof user.wishlist);
+
       let wishlist = [];
+
       if (user.wishlist) {
-        try {
-          // Handle both JSON objects and JSON strings
-          let parsedWishlist;
-          if (typeof user.wishlist === 'string') {
-            parsedWishlist = JSON.parse(user.wishlist);
-          } else {
-            parsedWishlist = user.wishlist;
+        // If it's already an array, use it directly
+        if (Array.isArray(user.wishlist)) {
+          console.log('Using array wishlist directly:', user.wishlist);
+          wishlist = user.wishlist;
+        }
+        // If it's a string, try to parse it
+        else if (typeof user.wishlist === 'string') {
+          try {
+            console.log('Parsing string wishlist:', user.wishlist);
+            const parsed = JSON.parse(user.wishlist);
+            wishlist = Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            console.log('Error parsing string wishlist:', error);
+            wishlist = [];
           }
-          wishlist = Array.isArray(parsedWishlist) ? parsedWishlist : [];
-        } catch (error) {
-          console.log('Error parsing wishlist in getWishlist:', error);
-          wishlist = [];
+        }
+        // If it's an object, try to convert to array
+        else if (typeof user.wishlist === 'object') {
+          console.log('Converting object to array:', user.wishlist);
+          wishlist = Array.isArray(user.wishlist) ? user.wishlist : [];
         }
       }
 
+      // Remove duplicates and filter out invalid values
+      // Also convert all IDs to numbers for consistency
+      wishlist = wishlist
+        .map(id => {
+          // Convert to number if it's a string
+          if (typeof id === 'string') {
+            const numId = parseInt(id, 10);
+            return !isNaN(numId) ? numId : null;
+          }
+          return typeof id === 'number' ? id : null;
+        })
+        .filter((id, index, self) =>
+          id != null && id !== '' && self.indexOf(id) === index
+        );
+
+      console.log('Final wishlist result (deduplicated and converted):', wishlist);
       return wishlist;
     } catch (error) {
+      console.error('Error in getWishlist:', error);
       throw new Error(`Failed to get wishlist: ${error.message}`);
     }
   }
@@ -264,7 +297,7 @@ class User {
 
         const user = userRows[0];
         let cartItems = [];
-        
+
         if (user.cart_item) {
           try {
             cartItems = JSON.parse(user.cart_item);
@@ -278,7 +311,7 @@ class User {
         // Check if product already exists in cart (compare as numbers)
         const existingItemIndex = cartItems.findIndex(item => parseInt(item.product_id) === productIdNum);
         console.log('Existing item index:', existingItemIndex);
-        
+
         if (existingItemIndex !== -1) {
           // Update quantity
           cartItems[existingItemIndex].quantity += quantityNum;
@@ -333,7 +366,7 @@ class User {
 
         const user = userRows[0];
         let cartItems = [];
-        
+
         if (user.cart_item) {
           try {
             cartItems = JSON.parse(user.cart_item);
@@ -344,7 +377,7 @@ class User {
 
         // Filter out the product (compare as numbers)
         cartItems = cartItems.filter(item => parseInt(item.product_id) !== productIdNum);
-        
+
         await connection.execute(
           'UPDATE users SET cart_item = ? WHERE id = ?',
           [JSON.stringify(cartItems), userId]
@@ -387,7 +420,7 @@ class User {
 
         const user = userRows[0];
         let cartItems = [];
-        
+
         if (user.cart_item) {
           try {
             cartItems = JSON.parse(user.cart_item);
@@ -397,7 +430,7 @@ class User {
         }
 
         const itemIndex = cartItems.findIndex(item => parseInt(item.product_id) === productIdNum);
-        
+
         if (itemIndex !== -1) {
           if (quantityNum <= 0) {
             cartItems.splice(itemIndex, 1);
@@ -459,31 +492,31 @@ class User {
   static async saveUserPreferences(userId, preferences) {
     try {
       const { savedAddress, savedPaymentInfo } = preferences;
-      
+
       const updateFields = [];
       const updateValues = [];
-      
+
       if (savedAddress) {
         updateFields.push('saved_address = ?');
         updateValues.push(JSON.stringify(savedAddress));
       }
-      
+
       if (savedPaymentInfo) {
         updateFields.push('saved_payment_info = ?');
         updateValues.push(JSON.stringify(savedPaymentInfo));
       }
-      
+
       if (updateFields.length === 0) {
         throw new Error('No preferences to save');
       }
-      
+
       updateValues.push(userId);
-      
+
       await pool.execute(
         `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
         updateValues
       );
-      
+
       return true;
     } catch (error) {
       console.error('Error saving user preferences:', error);
@@ -495,14 +528,14 @@ class User {
   static async getUserPreferences(userId) {
     try {
       console.log('Getting user preferences for user ID:', userId);
-      
+
       const [rows] = await pool.execute(
         'SELECT saved_address, saved_payment_info FROM users WHERE id = ?',
         [userId]
       );
-      
+
       console.log('Database query result:', rows);
-      
+
       if (rows.length === 0) {
         console.log('User not found in database');
         // Return empty preferences instead of throwing error
@@ -511,22 +544,22 @@ class User {
           savedPaymentInfo: null
         };
       }
-      
+
       const user = rows[0];
       console.log('User data from database:', user);
-      
+
       const preferences = {
-        savedAddress: user.saved_address ? JSON.parse(user.saved_address) : null,
-        savedPaymentInfo: user.saved_payment_info ? JSON.parse(user.saved_payment_info) : null
+        savedAddress: user.saved_address ? (typeof user.saved_address === 'string' ? JSON.parse(user.saved_address) : user.saved_address) : null,
+        savedPaymentInfo: user.saved_payment_info ? (typeof user.saved_payment_info === 'string' ? JSON.parse(user.saved_payment_info) : user.saved_payment_info) : null
       };
-      
+
       console.log('Parsed preferences:', preferences);
       return preferences;
     } catch (error) {
       console.error('Error getting user preferences:', error);
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
-      
+
       // Return empty preferences instead of throwing error
       return {
         savedAddress: null,

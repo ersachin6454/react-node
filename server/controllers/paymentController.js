@@ -72,7 +72,11 @@ const createPaymentIntent = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    res.status(500).json({ error: 'Failed to create payment intent' });
+    res.status(500).json({ 
+      error: 'Failed to create payment intent',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 

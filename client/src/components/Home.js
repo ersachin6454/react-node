@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import '../styles/Home.css';
 
 function Home() {
+  const navigate = useNavigate();
   const [latestProducts, setLatestProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,15 +14,17 @@ function Home() {
     const fetchLatestProducts = async () => {
       try {
         const response = await fetch(`/api/products?t=${Date.now()}`);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const products = await response.json();
-        // Get the first 2 products (latest ones)
-        const latestTwo = products.slice(0, 3);
-        setLatestProducts(latestTwo);
+        // Filter only active products and get the first 3 products (latest ones)
+        // Handle case where is_active might not exist yet (backward compatibility)
+        const activeProducts = products.filter(p => p.is_active === undefined || p.is_active !== false);
+        const latestThree = activeProducts.slice(0, 3);
+        setLatestProducts(latestThree);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching latest products:', error);
@@ -34,38 +38,11 @@ function Home() {
   const slides = [
     {
       id: 1,
-      title: "Welcome to Our App",
-      description: "Discover amazing features and functionality",
-      image: "https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      buttonText: "Get Started"
+      image: "/assets/image/home/banner1.jpg"
     },
     {
       id: 2,
-      title: "Modern Design",
-      description: "Beautiful and responsive user interface",
-      image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      buttonText: "Learn More"
-    },
-    {
-      id: 3,
-      title: "Powerful Features",
-      description: "Everything you need in one place",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      buttonText: "Explore"
-    },
-    {
-      id: 4,
-      title: "Mobile First",
-      description: "Optimized for all devices and screen sizes",
-      image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      buttonText: "Discover"
-    },
-    {
-      id: 5,
-      title: "Fast Performance",
-      description: "Lightning-fast loading and smooth interactions",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      buttonText: "Experience"
+      image: "/assets/image/home/baner2.jpg"
     }
   ];
 
@@ -103,31 +80,41 @@ function Home() {
       <Slider {...settings}>
         {slides.map((slide) => (
           <div key={slide.id} className="slide">
-            <div 
-              className="slide-background"
-              style={{ backgroundImage: `url(${slide.image})` }}
-            >
-              {/* <div className="slide-content">
-                <h1 className="slide-title">{slide.title}</h1>
-                <p className="slide-description">{slide.description}</p>
-                <button className="slide-button">{slide.buttonText}</button>
-              </div> */}
+            <div className="slide-background">
+              <img
+                src={slide.image}
+                alt={`Banner ${slide.id}`}
+                onError={(e) => {
+                  console.error('Failed to load image:', slide.image);
+                  e.target.style.display = 'none';
+                }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'center'
+                }}
+              />
             </div>
           </div>
         ))}
       </Slider>
       <div className="latest-products-section">
         <div className="container">
-          <h2 className="section-title">Latest Products</h2>
           {loading ? (
             <div className="loading">Loading latest products...</div>
           ) : (
             <div className="latest-products-grid">
               {latestProducts.map((product) => (
-                <div key={product.id} className="product-card">
+                <div
+                  key={product.id}
+                  className="product-card"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="product-image">
-                    <img 
-                      src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x250?text=No+Image'} 
+                    <img
+                      src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x250?text=No+Image'}
                       alt={product.name}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/300x250?text=Image+Not+Found';

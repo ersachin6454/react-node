@@ -11,29 +11,103 @@ function Wishlist() {
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated() && user?.id) {
+    const authStatus = isAuthenticated();
+    if (authStatus && user?.id) {
       fetchWishlistItems();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated(), user?.id]);
+  }, [user?.id]);
 
   const fetchWishlistItems = async () => {
     try {
       setLoading(true);
+      console.log('Fetching wishlist for user:', user.id);
       const response = await fetch(`/api/users/${user.id}/wishlist`);
+      console.log('Wishlist response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
-        setWishlistItems(data.wishlist || []);
-        
-        // Fetch product details for each wishlist item
-        if (data.wishlist && data.wishlist.length > 0) {
-          const productPromises = data.wishlist.map(productId => 
-            fetch(`/api/products/${productId}`).then(res => res.json())
-          );
-          const productDetails = await Promise.all(productPromises);
-          setProducts(productDetails);
+        console.log('Wishlist data received:', data);
+
+        // Handle different response formats
+        let wishlistArray = [];
+        if (data.wishlist) {
+          wishlistArray = Array.isArray(data.wishlist) ? data.wishlist : [];
+        } else if (Array.isArray(data)) {
+          wishlistArray = data;
         }
+
+        console.log('Wishlist array:', wishlistArray);
+        console.log('Wishlist array type:', typeof wishlistArray);
+        console.log('Wishlist array length:', wishlistArray.length);
+
+        setWishlistItems(wishlistArray);
+
+        // Fetch product details for each wishlist item
+        if (wishlistArray && wishlistArray.length > 0) {
+          console.log('Fetching product details for wishlist items:', wishlistArray);
+
+          // Convert all IDs to numbers and remove duplicates/invalid values
+          const uniqueWishlist = [...new Set(
+            wishlistArray
+              .map(id => {
+                // Handle both string and number IDs, and also handle if id is an object
+                if (typeof id === 'object' && id !== null) {
+                  id = id.id || id.product_id || id.productId;
+                }
+                const numId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+                return !isNaN(numId) && numId > 0 ? numId : null;
+              })
+              .filter(id => id !== null)
+          )];
+
+          console.log('Unique wishlist IDs after processing:', uniqueWishlist);
+
+          if (uniqueWishlist.length === 0) {
+            console.warn('No valid product IDs found in wishlist');
+            setProducts([]);
+            setLoading(false);
+            return;
+          }
+
+          const productPromises = uniqueWishlist.map(async (productId) => {
+            try {
+              const res = await fetch(`/api/products/${productId}`);
+              if (res.ok) {
+                const product = await res.json();
+                return product;
+              } else {
+                console.error(`Failed to fetch product ${productId}:`, res.status);
+                return null;
+              }
+            } catch (error) {
+              console.error(`Error fetching product ${productId}:`, error);
+              return null;
+            }
+          });
+
+          const productDetails = await Promise.all(productPromises);
+          // Filter out null values (failed fetches)
+          const validProducts = productDetails.filter(p => p !== null && p.id);
+          console.log('Product details fetched:', validProducts);
+          console.log('Valid products count:', validProducts.length);
+          setProducts(validProducts);
+
+          // Update wishlistItems to match valid products
+          if (validProducts.length !== uniqueWishlist.length) {
+            console.warn(`Some products could not be loaded. Expected ${uniqueWishlist.length}, got ${validProducts.length}`);
+            console.log('Failed product IDs:', uniqueWishlist.filter(id => !validProducts.find(p => p.id === id)));
+          }
+        } else {
+          console.log('No wishlist items found - array is empty or undefined');
+          setProducts([]);
+        }
+      } else {
+        console.error('Failed to fetch wishlist, status:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error data:', errorData);
+        showNotification('Failed to load wishlist', 'error');
       }
     } catch (error) {
       console.error('Error fetching wishlist items:', error);
@@ -116,10 +190,16 @@ function Wishlist() {
         <p>{wishlistItems.length} item(s) in your wishlist</p>
       </div>
 
-      {wishlistItems.length === 0 ? (
+      {!loading && products.length === 0 && wishlistItems.length === 0 ? (
         <div className="empty-wishlist">
           <h2>Your wishlist is empty</h2>
           <p>Add some products to your wishlist!</p>
+        </div>
+      ) : !loading && products.length === 0 && wishlistItems.length > 0 ? (
+        <div className="empty-wishlist">
+          <h2>Error loading wishlist items</h2>
+          <p>Some products may have been removed. Please refresh the page.</p>
+          <button onClick={fetchWishlistItems} className="refresh-btn">Refresh</button>
         </div>
       ) : (
         <div className="wishlist-items">
@@ -131,7 +211,7 @@ function Wishlist() {
                   alt={product.name}
                 />
               </div>
-              
+
               <div className="item-details">
                 <h3 className="item-name">{product.name}</h3>
                 <p className="item-description">{product.description}</p>

@@ -4,6 +4,8 @@ import AddProduct from '../components/AddProduct';
 import ProductList from '../components/ProductList';
 import EditProduct from '../components/EditProduct';
 import UserManagement from '../components/UserManagement';
+import CartItemsList from '../components/CartItemsList';
+import WishlistItemsList from '../components/WishlistItemsList';
 import '../styles/AdminDashboard.css';
 
 function AdminDashboard() {
@@ -16,12 +18,12 @@ function AdminDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     const user = localStorage.getItem('adminUser');
-    
+
     if (!token || !user) {
       navigate('/admin/login');
       return;
     }
-    
+
     setAdminUser(JSON.parse(user));
   }, [navigate]);
 
@@ -69,23 +71,35 @@ function AdminDashboard() {
       </header>
 
       <nav className="admin-nav">
-        <button 
+        <button
           className={`nav-btn ${activeTab === 'products' ? 'active' : ''}`}
           onClick={() => setActiveTab('products')}
         >
           Manage Products
         </button>
-        <button 
+        <button
           className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
           Manage Users
         </button>
-        <button 
+        <button
           className={`nav-btn ${activeTab === 'orders' ? 'active' : ''}`}
           onClick={() => setActiveTab('orders')}
         >
           Orders
+        </button>
+        <button
+          className={`nav-btn ${activeTab === 'cart' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cart')}
+        >
+          Cart Items
+        </button>
+        <button
+          className={`nav-btn ${activeTab === 'wishlist' ? 'active' : ''}`}
+          onClick={() => setActiveTab('wishlist')}
+        >
+          Wishlist Items
         </button>
       </nav>
 
@@ -93,7 +107,7 @@ function AdminDashboard() {
         {activeTab === 'products' && (
           <>
             {currentView === 'list' && (
-              <ProductList 
+              <ProductList
                 onEditProduct={handleEditProduct}
                 onAddProduct={handleAddProduct}
               />
@@ -102,7 +116,7 @@ function AdminDashboard() {
               <AddProduct onBack={handleBackToList} onSave={handleProductSaved} />
             )}
             {currentView === 'edit' && editingProduct && (
-              <EditProduct 
+              <EditProduct
                 product={editingProduct}
                 onSave={handleProductSaved}
                 onCancel={handleBackToList}
@@ -117,6 +131,8 @@ function AdminDashboard() {
             <p>Order management functionality will be implemented here.</p>
           </div>
         )}
+        {activeTab === 'cart' && <CartItemsList />}
+        {activeTab === 'wishlist' && <WishlistItemsList />}
       </main>
     </div>
   );

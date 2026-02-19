@@ -44,13 +44,16 @@ function SingleProduct() {
 
   const fetchWishlistItems = async () => {
     if (!user?.id) return;
-    
+
     try {
       setWishlistLoading(true);
       const response = await fetch(`/api/users/${user.id}/wishlist`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Wishlist fetched:', data.wishlist);
         setWishlistItems(data.wishlist || []);
+      } else {
+        console.error('Failed to fetch wishlist:', response.status);
       }
     } catch (error) {
       console.error('Error fetching wishlist items:', error);
@@ -73,7 +76,7 @@ function SingleProduct() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
+
     const success = await addToCart(product.id, quantity);
     if (success) {
       showNotification('Item added to cart successfully!', 'success');
@@ -108,11 +111,10 @@ function SingleProduct() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         showNotification(`Item ${action} wishlist successfully!`, 'success');
-        if (result.wishlist && Array.isArray(result.wishlist)) {
-          setWishlistItems(result.wishlist);
-        }
+        // Refresh wishlist items
+        await fetchWishlistItems();
       } else {
         const errorData = await response.json();
         showNotification(errorData.error || `Failed to ${action} wishlist`, 'error');
@@ -158,8 +160,8 @@ function SingleProduct() {
 
       <div className="product-details">
         <div className="product-image-section">
-          <img 
-            src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/500x400?text=No+Image'} 
+          <img
+            src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/500x400?text=No+Image'}
             alt={product.name}
             className="product-main-image"
             onError={(e) => {
@@ -170,12 +172,12 @@ function SingleProduct() {
 
         <div className="product-info-section">
           <h1 className="single-product-title">{product.name}</h1>
-          
+
           <div className="product-rating">
             {[...Array(5)].map((_, i) => (
-              <FaStar 
-                key={i} 
-                className={`star ${i < 4 ? 'filled' : ''}`} 
+              <FaStar
+                key={i}
+                className={`star ${i < 4 ? 'filled' : ''}`}
               />
             ))}
             <span className="rating-text">(4.0)</span>
@@ -190,7 +192,18 @@ function SingleProduct() {
 
           <div className="product-description">
             <h3>Description</h3>
-            <p>{product.description || 'High quality product with excellent features and modern design.'}</p>
+            <p style={{
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              overflow: 'visible',
+              maxHeight: 'none',
+              height: 'auto',
+              display: 'block',
+              textOverflow: 'clip',
+              WebkitLineClamp: 'unset'
+            }}>
+              {product.description || 'High quality product with excellent features and modern design.'}
+            </p>
           </div>
 
           <div className="product-stock">
@@ -225,7 +238,7 @@ function SingleProduct() {
             </div>
 
             <div className="action-buttons">
-              <button 
+              <button
                 className={`wishlist-btn ${isInWishlist(product.id) ? 'in-wishlist' : ''}`}
                 onClick={toggleWishlist}
                 disabled={wishlistLoading}
@@ -234,7 +247,7 @@ function SingleProduct() {
                 {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
               </button>
 
-              <button 
+              <button
                 className="add-to-cart-btn"
                 onClick={handleAddToCart}
                 disabled={!product.quantity || product.quantity <= 0}
@@ -247,7 +260,7 @@ function SingleProduct() {
         </div>
       </div>
 
-      <Notification 
+      <Notification
         message={notification.message}
         type={notification.type}
         isVisible={notification.isVisible}

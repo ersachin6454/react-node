@@ -5,7 +5,7 @@ class Order {
   async create(orderData) {
     try {
       console.log('Order.create called with:', orderData);
-      
+
       const {
         user_id,
         stripe_payment_intent_id,
@@ -103,7 +103,7 @@ class Order {
       }
 
       const order = rows[0];
-      
+
       // Parse addresses
       order.shipping_address = JSON.parse(order.shipping_address);
       order.billing_address = JSON.parse(order.billing_address);
@@ -146,7 +146,42 @@ class Order {
         ORDER BY o.created_at DESC
       `, [userId]);
 
-      return rows;
+      // Get order items for each order
+      const ordersWithItems = await Promise.all(rows.map(async (order) => {
+        const [items] = await pool.execute(`
+          SELECT 
+            oi.*,
+            p.name as product_name,
+            p.images,
+            p.sell_price
+          FROM order_items oi
+          JOIN products p ON oi.product_id = p.id
+          WHERE oi.order_id = ?
+        `, [order.id]);
+
+        order.items = items.map(item => {
+          let images = [];
+          try {
+            if (item.images && typeof item.images === 'string') {
+              images = JSON.parse(item.images);
+            } else if (Array.isArray(item.images)) {
+              images = item.images;
+            }
+          } catch (error) {
+            console.error('Error parsing images for order item:', error);
+            images = [];
+          }
+
+          return {
+            ...item,
+            images: images
+          };
+        });
+
+        return order;
+      }));
+
+      return ordersWithItems;
     } catch (error) {
       console.error('Error fetching user orders:', error);
       throw error;

@@ -2,9 +2,14 @@ const { pool } = require('../config/database');
 
 class Product {
 
-  async findAll() {
+  async findAll(includeInactive = false) {
     try {
-      const [rows] = await pool.execute('SELECT * FROM products ORDER BY created_at DESC');
+      let query = 'SELECT * FROM products';
+      if (!includeInactive) {
+        query += ' WHERE is_active = TRUE';
+      }
+      query += ' ORDER BY created_at DESC';
+      const [rows] = await pool.execute(query);
       return rows;
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -24,14 +29,32 @@ class Product {
 
   async create(productData) {
     try {
-      const { name, price, sell_price, description, images, quantity } = productData;
-      
-      const [result] = await pool.execute(
-        'INSERT INTO products (name, price, sell_price, description, images, quantity) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, price, sell_price, description, JSON.stringify(images), quantity]
+      const { name, price, sell_price, description, images, quantity, specifications, is_active } = productData;
+
+      // Check if is_active column exists
+      const [columns] = await pool.execute(
+        `SELECT COLUMN_NAME 
+         FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'products' 
+         AND COLUMN_NAME = 'is_active'`
       );
-      
-      return { id: result.insertId, ...productData };
+
+      const hasIsActiveColumn = columns.length > 0;
+
+      if (hasIsActiveColumn) {
+        const [result] = await pool.execute(
+          'INSERT INTO products (name, price, sell_price, description, images, quantity, specifications, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [name, price, sell_price, description, JSON.stringify(images), quantity, specifications || null, is_active !== undefined ? is_active : true]
+        );
+        return { id: result.insertId, ...productData };
+      } else {
+        const [result] = await pool.execute(
+          'INSERT INTO products (name, price, sell_price, description, images, quantity, specifications) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [name, price, sell_price, description, JSON.stringify(images), quantity, specifications || null]
+        );
+        return { id: result.insertId, ...productData };
+      }
     } catch (error) {
       console.error('Error creating product:', error);
       throw error;
@@ -40,13 +63,31 @@ class Product {
 
   async update(id, productData) {
     try {
-      const { name, price, sell_price, description, images, quantity } = productData;
-      
-      await pool.execute(
-        'UPDATE products SET name = ?, price = ?, sell_price = ?, description = ?, images = ?, quantity = ? WHERE id = ?',
-        [name, price, sell_price, description, JSON.stringify(images), quantity, id]
+      const { name, price, sell_price, description, images, quantity, specifications, is_active } = productData;
+
+      // Check if is_active column exists
+      const [columns] = await pool.execute(
+        `SELECT COLUMN_NAME 
+         FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'products' 
+         AND COLUMN_NAME = 'is_active'`
       );
-      
+
+      const hasIsActiveColumn = columns.length > 0;
+
+      if (hasIsActiveColumn) {
+        await pool.execute(
+          'UPDATE products SET name = ?, price = ?, sell_price = ?, description = ?, images = ?, quantity = ?, specifications = ?, is_active = ? WHERE id = ?',
+          [name, price, sell_price, description, JSON.stringify(images), quantity, specifications || null, is_active !== undefined ? is_active : true, id]
+        );
+      } else {
+        await pool.execute(
+          'UPDATE products SET name = ?, price = ?, sell_price = ?, description = ?, images = ?, quantity = ?, specifications = ? WHERE id = ?',
+          [name, price, sell_price, description, JSON.stringify(images), quantity, specifications || null, id]
+        );
+      }
+
       return { id, ...productData };
     } catch (error) {
       console.error('Error updating product:', error);
@@ -99,6 +140,32 @@ class Product {
       return true;
     } catch (error) {
       console.error('Error updating product quantity:', error);
+      throw error;
+    }
+  }
+
+  async toggleActive(id, isActive) {
+    try {
+      // Check if is_active column exists
+      const [columns] = await pool.execute(
+        `SELECT COLUMN_NAME 
+         FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'products' 
+         AND COLUMN_NAME = 'is_active'`
+      );
+
+      if (columns.length === 0) {
+        throw new Error('is_active column does not exist. Please run the migration first.');
+      }
+
+      await pool.execute(
+        'UPDATE products SET is_active = ? WHERE id = ?',
+        [isActive, id]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error toggling product active status:', error);
       throw error;
     }
   }

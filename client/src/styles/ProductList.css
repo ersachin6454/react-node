@@ -190,6 +190,43 @@
   font-size: 0.9rem;
 }
 
+.product-status-cell {
+  display: flex;
+  align-items: center;
+}
+
+.status-toggle-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-toggle-btn.active {
+  background: #38a169;
+  color: white;
+}
+
+.status-toggle-btn.active:hover {
+  background: #2f855a;
+  transform: translateY(-1px);
+}
+
+.status-toggle-btn.inactive {
+  background: #cbd5e0;
+  color: #4a5568;
+}
+
+.status-toggle-btn.inactive:hover {
+  background: #a0aec0;
+  transform: translateY(-1px);
+}
+
 .product-actions-cell {
   display: flex;
   gap: 8px;
@@ -270,7 +307,8 @@
   justify-content: center;
 }
 
-.cancel-btn, .confirm-delete-btn {
+.cancel-btn,
+.confirm-delete-btn {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
@@ -312,44 +350,45 @@
     gap: 20px;
     align-items: stretch;
   }
-  
+
   .products-table-container {
     overflow-x: scroll;
   }
-  
+
   .products-table {
     min-width: 800px;
   }
-  
+
   .product-actions-cell {
     flex-direction: column;
   }
-  
+
   .delete-modal-content {
     padding: 20px;
   }
-  
+
   .delete-modal-actions {
     flex-direction: column;
   }
 }
 
 @media (max-width: 480px) {
+
   .products-table th,
   .products-table td {
     padding: 10px 8px;
     font-size: 0.85rem;
   }
-  
+
   .product-image-cell {
     width: 40px;
     height: 40px;
   }
-  
+
   .product-description-cell {
     max-width: 150px;
   }
-  
+
   .product-actions-cell .edit-btn,
   .product-actions-cell .delete-btn {
     padding: 4px 8px;

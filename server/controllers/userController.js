@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
+const { pool } = require('../config/database');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -16,11 +17,11 @@ const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json(user);
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -31,22 +32,22 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { name, email, password, confirm_password } = req.body;
-    
+
     // Basic validation
     if (!name || !email || !password || !confirm_password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    
+
     if (password !== confirm_password) {
       return res.status(400).json({ error: 'Passwords do not match' });
     }
-    
+
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
-    
+
     const user = await User.create({ name, email, password, confirm_password });
     res.status(201).json(user);
   } catch (error) {
@@ -58,28 +59,28 @@ const createUser = async (req, res) => {
 const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    
+
     // Basic validation
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    
+
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
-    
-    const user = await User.create({ 
-      name: username, 
-      email, 
-      password, 
-      confirm_password: password 
+
+    const user = await User.create({
+      name: username,
+      email,
+      password,
+      confirm_password: password
     });
-    
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      user: { id: user.id, username: user.name, email: user.email } 
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: { id: user.id, username: user.name, email: user.email }
     });
   } catch (error) {
     console.error('Error registering user:', error);
@@ -90,26 +91,26 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Basic validation
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-    
+
     // Find user by email
     const user = await User.findByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     // Simple password check (in production, use bcrypt)
     if (user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
-    res.json({ 
-      message: 'Login successful', 
-      user: { id: user.id, username: user.name, email: user.email } 
+
+    res.json({
+      message: 'Login successful',
+      user: { id: user.id, username: user.name, email: user.email }
     });
   } catch (error) {
     console.error('Error logging in user:', error);
@@ -121,22 +122,22 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, password, confirm_password } = req.body;
-    
+
     // Basic validation
     if (!name || !email || !password || !confirm_password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    
+
     if (password !== confirm_password) {
       return res.status(400).json({ error: 'Passwords do not match' });
     }
-    
+
     // Check if user exists
     const existingUser = await User.findById(id);
     if (!existingUser) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     // Check if email is being changed and if new email already exists
     if (email !== existingUser.email) {
       const emailExists = await User.findByEmail(email);
@@ -144,7 +145,7 @@ const updateUser = async (req, res) => {
         return res.status(400).json({ error: 'User with this email already exists' });
       }
     }
-    
+
     const user = await User.update(id, { name, email, password, confirm_password });
     res.json(user);
   } catch (error) {
@@ -156,13 +157,13 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if user exists
     const existingUser = await User.findById(id);
     if (!existingUser) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const deleted = await User.delete(id);
     if (deleted) {
       res.json({ message: 'User deleted successfully' });
@@ -201,7 +202,7 @@ const addToWishlist = async (req, res) => {
     if (!productExists) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     const wishlist = await User.addToWishlist(userId, productId);
     res.json({ message: 'Added to wishlist successfully', wishlist });
   } catch (error) {
@@ -229,7 +230,9 @@ const removeFromWishlist = async (req, res) => {
 const getWishlist = async (req, res) => {
   try {
     const { userId } = req.params;
+    console.log('Getting wishlist for user:', userId);
     const wishlist = await User.getWishlist(userId);
+    console.log('Retrieved wishlist:', wishlist);
     res.json({ wishlist });
   } catch (error) {
     console.error('Error getting wishlist:', error);
@@ -269,13 +272,13 @@ const removeFromCart = async (req, res) => {
       body: req.body,
       params: req.params
     });
-    
+
     // Check if body is undefined or empty
     if (!req.body || Object.keys(req.body).length === 0) {
       console.error('Request body is empty or undefined');
       return res.status(400).json({ error: 'Request body is required' });
     }
-    
+
     const { productId } = req.body;
 
     if (!productId) {
@@ -356,15 +359,15 @@ const getUserPreferences = async (req, res) => {
   try {
     const { userId } = req.params;
     console.log('Controller: Getting preferences for user:', userId);
-    
+
     const preferences = await User.getUserPreferences(userId);
     console.log('Controller: Retrieved preferences:', preferences);
-    
+
     res.json(preferences);
   } catch (error) {
     console.error('Error getting user preferences:', error);
     console.error('Error details:', error.message);
-    
+
     // Return empty preferences instead of error
     res.json({
       savedAddress: null,
@@ -381,8 +384,8 @@ const debugUserData = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
-    res.json({ 
+
+    res.json({
       user: user.toJSON(),
       rawWishlist: user.wishlist,
       rawCart: user.cart_item,
@@ -392,6 +395,214 @@ const debugUserData = async (req, res) => {
   } catch (error) {
     console.error('Error getting debug data:', error);
     res.status(500).json({ error: 'Failed to get debug data' });
+  }
+};
+
+// Update user profile
+const updateUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, mobile_number } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+
+    if (mobile_number !== undefined) {
+      updates.push('mobile_number = ?');
+      values.push(mobile_number);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(userId);
+
+    await pool.execute(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    const updatedUser = await User.findById(userId);
+    res.json({ message: 'Profile updated successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+// Get user shipping addresses
+const getShippingAddresses = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const [addresses] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC',
+      [userId]
+    );
+
+    res.json(addresses);
+  } catch (error) {
+    console.error('Error fetching shipping addresses:', error);
+    res.status(500).json({ error: 'Failed to fetch shipping addresses' });
+  }
+};
+
+// Add shipping address
+const addShippingAddress = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { full_name, mobile_number, address_line1, address_line2, city, state, postal_code, country, is_default } = req.body;
+
+    if (!full_name || !mobile_number || !address_line1 || !city || !state || !postal_code) {
+      return res.status(400).json({ error: 'Required fields are missing' });
+    }
+
+    // If this is set as default, unset other defaults
+    if (is_default) {
+      await pool.execute(
+        'UPDATE shipping_addresses SET is_default = FALSE WHERE user_id = ?',
+        [userId]
+      );
+    }
+
+    const [result] = await pool.execute(
+      `INSERT INTO shipping_addresses 
+       (user_id, full_name, mobile_number, address_line1, address_line2, city, state, postal_code, country, is_default) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, full_name, mobile_number, address_line1, address_line2 || null, city, state, postal_code, country || 'India', is_default || false]
+    );
+
+    const [newAddress] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json({ message: 'Shipping address added successfully', address: newAddress[0] });
+  } catch (error) {
+    console.error('Error adding shipping address:', error);
+    res.status(500).json({ error: 'Failed to add shipping address' });
+  }
+};
+
+// Update shipping address
+const updateShippingAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+    const { full_name, mobile_number, address_line1, address_line2, city, state, postal_code, country, is_default } = req.body;
+
+    // Check if address belongs to user
+    const [addresses] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE id = ? AND user_id = ?',
+      [addressId, userId]
+    );
+
+    if (addresses.length === 0) {
+      return res.status(404).json({ error: 'Shipping address not found' });
+    }
+
+    // If this is set as default, unset other defaults
+    if (is_default) {
+      await pool.execute(
+        'UPDATE shipping_addresses SET is_default = FALSE WHERE user_id = ? AND id != ?',
+        [userId, addressId]
+      );
+    }
+
+    await pool.execute(
+      `UPDATE shipping_addresses SET 
+       full_name = ?, mobile_number = ?, address_line1 = ?, address_line2 = ?, 
+       city = ?, state = ?, postal_code = ?, country = ?, is_default = ? 
+       WHERE id = ? AND user_id = ?`,
+      [full_name, mobile_number, address_line1, address_line2 || null, city, state, postal_code, country || 'India', is_default || false, addressId, userId]
+    );
+
+    const [updatedAddress] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE id = ?',
+      [addressId]
+    );
+
+    res.json({ message: 'Shipping address updated successfully', address: updatedAddress[0] });
+  } catch (error) {
+    console.error('Error updating shipping address:', error);
+    res.status(500).json({ error: 'Failed to update shipping address' });
+  }
+};
+
+// Delete shipping address
+const deleteShippingAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+
+    // Check if address belongs to user
+    const [addresses] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE id = ? AND user_id = ?',
+      [addressId, userId]
+    );
+
+    if (addresses.length === 0) {
+      return res.status(404).json({ error: 'Shipping address not found' });
+    }
+
+    await pool.execute(
+      'DELETE FROM shipping_addresses WHERE id = ? AND user_id = ?',
+      [addressId, userId]
+    );
+
+    res.json({ message: 'Shipping address deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting shipping address:', error);
+    res.status(500).json({ error: 'Failed to delete shipping address' });
+  }
+};
+
+// Set default shipping address
+const setDefaultShippingAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+
+    // Check if address belongs to user
+    const [addresses] = await pool.execute(
+      'SELECT * FROM shipping_addresses WHERE id = ? AND user_id = ?',
+      [addressId, userId]
+    );
+
+    if (addresses.length === 0) {
+      return res.status(404).json({ error: 'Shipping address not found' });
+    }
+
+    // Unset all defaults for this user
+    await pool.execute(
+      'UPDATE shipping_addresses SET is_default = FALSE WHERE user_id = ?',
+      [userId]
+    );
+
+    // Set this address as default
+    await pool.execute(
+      'UPDATE shipping_addresses SET is_default = TRUE WHERE id = ? AND user_id = ?',
+      [addressId, userId]
+    );
+
+    res.json({ message: 'Default shipping address updated successfully' });
+  } catch (error) {
+    console.error('Error setting default shipping address:', error);
+    res.status(500).json({ error: 'Failed to set default shipping address' });
   }
 };
 
@@ -413,5 +624,11 @@ module.exports = {
   getCartItemCount,
   saveUserPreferences,
   getUserPreferences,
-  debugUserData
+  debugUserData,
+  updateUserProfile,
+  getShippingAddresses,
+  addShippingAddress,
+  updateShippingAddress,
+  deleteShippingAddress,
+  setDefaultShippingAddress
 };

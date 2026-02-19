@@ -56,6 +56,34 @@ function ProductList({ onEditProduct, onAddProduct }) {
     }
   };
 
+  const handleToggleActive = async (productId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`/api/admin/products/${productId}/toggle-active`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_active: !currentStatus })
+      });
+
+      if (response.ok) {
+        // Update the product in the list
+        setProducts(products.map(product =>
+          product.id === productId
+            ? { ...product, is_active: !currentStatus }
+            : product
+        ));
+      } else {
+        setError('Failed to update product status');
+      }
+    } catch (error) {
+      console.error('Error toggling product status:', error);
+      setError('Network error while updating product status');
+    }
+  };
+
   if (loading) {
     return (
       <div className="product-list-container">
@@ -93,6 +121,7 @@ function ProductList({ onEditProduct, onAddProduct }) {
                 <th>Description</th>
                 <th>Price</th>
                 <th>Stock</th>
+                <th>Status</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -102,8 +131,8 @@ function ProductList({ onEditProduct, onAddProduct }) {
                 <tr key={product.id}>
                   <td>
                     <div className="product-image-cell">
-                      <img 
-                        src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/60x60?text=No+Image'} 
+                      <img
+                        src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/60x60?text=No+Image'}
                         alt={product.name}
                         onError={(e) => {
                           e.target.src = 'https://via.placeholder.com/60x60?text=Image+Not+Found';
@@ -120,8 +149,8 @@ function ProductList({ onEditProduct, onAddProduct }) {
                     <div className="product-description-cell">
                       {product.description ? (
                         <span title={product.description}>
-                          {product.description.length > 50 
-                            ? `${product.description.substring(0, 50)}...` 
+                          {product.description.length > 50
+                            ? `${product.description.substring(0, 50)}...`
                             : product.description
                           }
                         </span>
@@ -146,20 +175,37 @@ function ProductList({ onEditProduct, onAddProduct }) {
                     </div>
                   </td>
                   <td>
+                    <div className="product-status-cell">
+                      {product.is_active !== undefined ? (
+                        <button
+                          onClick={() => handleToggleActive(product.id, product.is_active)}
+                          className={`status-toggle-btn ${product.is_active ? 'active' : 'inactive'}`}
+                          title={product.is_active ? 'Click to deactivate' : 'Click to activate'}
+                        >
+                          {product.is_active ? 'Active' : 'Inactive'}
+                        </button>
+                      ) : (
+                        <span className="status-toggle-btn" style={{ background: '#e1e5e9', color: '#666', cursor: 'default' }}>
+                          N/A
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
                     <div className="product-date-cell">
                       {new Date(product.created_at).toLocaleDateString()}
                     </div>
                   </td>
                   <td>
                     <div className="product-actions-cell">
-                      <button 
+                      <button
                         onClick={() => onEditProduct(product)}
                         className="edit-btn"
                         title="Edit Product"
                       >
                         Edit
                       </button>
-                      <button 
+                      <button
                         onClick={() => setDeleteConfirm(product.id)}
                         className="delete-btn"
                         title="Delete Product"
@@ -181,13 +227,13 @@ function ProductList({ onEditProduct, onAddProduct }) {
             <h3>Confirm Delete</h3>
             <p>Are you sure you want to delete this product? This action cannot be undone.</p>
             <div className="delete-modal-actions">
-              <button 
+              <button
                 onClick={() => setDeleteConfirm(null)}
                 className="cancel-btn"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={() => handleDelete(deleteConfirm)}
                 className="confirm-delete-btn"
               >

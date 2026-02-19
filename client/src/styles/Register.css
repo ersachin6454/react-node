@@ -78,12 +78,47 @@
 }
 
 @media (max-width: 768px) {
+  .register-page {
+    padding: 15px;
+  }
+
   .register-container {
     padding: 30px 20px;
     margin: 10px;
   }
-  
+
   .register-header h1 {
     font-size: 2rem;
+  }
+
+  .register-header p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-page {
+    padding: 10px;
+  }
+
+  .register-container {
+    padding: 25px 15px;
+    margin: 5px;
+  }
+
+  .register-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .register-header p {
+    font-size: 0.95rem;
+  }
+}
+
+/* Tablet specific styles */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .register-container {
+    max-width: 550px;
+    padding: 35px;
   }
 }

@@ -17,7 +17,13 @@ const {
   getCart,
   getCartItemCount,
   saveUserPreferences,
-  getUserPreferences
+  getUserPreferences,
+  updateUserProfile,
+  getShippingAddresses,
+  addShippingAddress,
+  updateShippingAddress,
+  deleteShippingAddress,
+  setDefaultShippingAddress
 } = require('../controllers/userController');
 
 // GET /api/users - Get all users
@@ -73,5 +79,25 @@ router.post('/:userId/preferences', saveUserPreferences);
 
 // GET /api/users/:userId/preferences - Get user preferences
 router.get('/:userId/preferences', getUserPreferences);
+
+// Profile management routes
+// PUT /api/users/:userId/profile - Update user profile
+router.put('/:userId/profile', updateUserProfile);
+
+// Shipping addresses routes
+// GET /api/users/:userId/shipping-addresses - Get all shipping addresses
+router.get('/:userId/shipping-addresses', getShippingAddresses);
+
+// POST /api/users/:userId/shipping-addresses - Add shipping address
+router.post('/:userId/shipping-addresses', addShippingAddress);
+
+// PUT /api/users/:userId/shipping-addresses/:addressId - Update shipping address
+router.put('/:userId/shipping-addresses/:addressId', updateShippingAddress);
+
+// DELETE /api/users/:userId/shipping-addresses/:addressId - Delete shipping address
+router.delete('/:userId/shipping-addresses/:addressId', deleteShippingAddress);
+
+// PUT /api/users/:userId/shipping-addresses/:addressId/default - Set default shipping address
+router.put('/:userId/shipping-addresses/:addressId/default', setDefaultShippingAddress);
 
 module.exports = router;

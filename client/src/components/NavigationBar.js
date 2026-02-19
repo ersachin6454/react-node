@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaUser, FaHeart, FaShoppingCart, FaSignOutAlt } from 'react-icons/fa';
+import { FaUser, FaHeart, FaShoppingCart, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import ProfileModal from './ProfileModal';
@@ -11,9 +11,10 @@ function NavigationBar() {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: 'info', isVisible: false });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const { cartCount } = useCart();
-  
+
   const handleProfileClick = (e) => {
     e.preventDefault();
     if (isAuthenticated()) {
@@ -45,31 +46,60 @@ function NavigationBar() {
   };
 
   // Show navigation even while loading
-  
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+    // Prevent body scroll when menu is open
+    if (!isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    document.body.style.overflow = '';
+  };
+
   return (
     <nav className="navigation">
       <div className="nav-container">
-        <Link to="/" className="nav-brand">
+        <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
           <img src="/assets/image/logo.png" alt="logo" className="logo" />
         </Link>
-        <div className="nav-links">
-          <Link 
-            to="/products" 
+        <button
+          className="mobile-menu-toggle"
+          onClick={toggleMobileMenu}
+          aria-label="Toggle menu"
+        >
+          <span className={isMobileMenuOpen ? 'hamburger open' : 'hamburger'}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          <Link
+            to="/products"
             className={location.pathname === '/products' ? 'nav-link active' : 'nav-link'}
+            onClick={closeMobileMenu}
           >
             <FaUser className="nav-icon" />
             <span>Products</span>
           </Link>
-          <Link 
-            to="/wishlist" 
+          <Link
+            to="/wishlist"
             className={location.pathname === '/wishlist' ? 'nav-link active' : 'nav-link'}
+            onClick={closeMobileMenu}
           >
             <FaHeart className="nav-icon" />
             <span>Wishlist</span>
           </Link>
-          <Link 
-            to="/cart" 
+          <Link
+            to="/cart"
             className={location.pathname === '/cart' ? 'nav-link active' : 'nav-link'}
+            onClick={closeMobileMenu}
           >
             <div className="cart-icon-container">
               <FaShoppingCart className="nav-icon" />
@@ -81,26 +111,41 @@ function NavigationBar() {
           </Link>
           {isAuthenticated() ? (
             <>
-              <button 
+              <Link
+                to="/profile"
+                className={location.pathname === '/profile' ? 'nav-link active' : 'nav-link'}
+                onClick={closeMobileMenu}
+              >
+                <FaUserCircle className="nav-icon" />
+                <span>Profile</span>
+              </Link>
+              <button
                 className="nav-link"
-                onClick={handleLogout}
+                onClick={() => {
+                  handleLogout();
+                  closeMobileMenu();
+                }}
               >
                 <FaSignOutAlt className="nav-icon" />
                 <span>Logout</span>
               </button>
               {user?.role === 'admin' && (
-                <Link 
-                  to="/admin/dashboard" 
+                <Link
+                  to="/admin/dashboard"
                   className="nav-link admin-link"
+                  onClick={closeMobileMenu}
                 >
                   <span>Admin</span>
                 </Link>
               )}
             </>
           ) : (
-            <button 
+            <button
               className="nav-link"
-              onClick={handleProfileClick}
+              onClick={() => {
+                handleProfileClick();
+                closeMobileMenu();
+              }}
             >
               <FaUser className="nav-icon" />
               <span>Login</span>

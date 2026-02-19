@@ -31,10 +31,10 @@ const adminLogin = async (req, res) => {
 
     // Generate JWT token with 1 hour expiration for admin
     const token = jwt.sign(
-      { 
-        id: admin.id, 
-        email: admin.email, 
-        role: admin.role 
+      {
+        id: admin.id,
+        email: admin.email,
+        role: admin.role
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '1h' }
@@ -126,7 +126,7 @@ const getAllUsers = async (req, res) => {
     const [rows] = await pool.execute(
       'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
     );
-    
+
     res.json(rows);
   } catch (error) {
     console.error('Get all users error:', error);
@@ -241,6 +241,166 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Get all cart items across all users
+const getAllCartItems = async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        u.id as user_id,
+        u.name as user_name,
+        u.email as user_email,
+        u.cart_item,
+        u.created_at as user_created_at
+      FROM users u
+      WHERE u.cart_item IS NOT NULL 
+        AND u.cart_item != '[]'
+        AND u.cart_item != 'null'
+        AND u.cart_item != ''
+        AND u.role = 'user'
+      ORDER BY u.created_at DESC
+    `);
+
+    console.log(`Found ${rows.length} users with cart items`);
+
+    // Parse cart items and get product details
+    const cartItemsWithDetails = [];
+    for (const user of rows) {
+      try {
+        let cartItems = [];
+
+        // Handle different cart_item formats
+        if (user.cart_item === null || user.cart_item === undefined) {
+          continue;
+        }
+
+        if (typeof user.cart_item === 'string') {
+          // Try to parse JSON string
+          try {
+            const parsed = JSON.parse(user.cart_item);
+            cartItems = Array.isArray(parsed) ? parsed : [];
+          } catch (parseError) {
+            console.error(`Error parsing cart_item JSON for user ${user.user_id}:`, parseError);
+            console.error(`Raw cart_item value:`, user.cart_item);
+            continue;
+          }
+        } else if (Array.isArray(user.cart_item)) {
+          cartItems = user.cart_item;
+        } else if (typeof user.cart_item === 'object') {
+          // If it's an object, try to convert to array
+          cartItems = [user.cart_item];
+        }
+
+        if (Array.isArray(cartItems) && cartItems.length > 0) {
+          for (const item of cartItems) {
+            // Handle different item structures
+            const productId = item.product_id || item.productId || item.id;
+            const quantity = item.quantity || 1;
+
+            if (!productId) {
+              console.error(`Invalid cart item structure for user ${user.user_id}:`, item);
+              continue;
+            }
+
+            const [productRows] = await pool.execute(
+              'SELECT id, name, sell_price, price, images FROM products WHERE id = ?',
+              [productId]
+            );
+
+            if (productRows.length > 0) {
+              cartItemsWithDetails.push({
+                user_id: user.user_id,
+                user_name: user.user_name,
+                user_email: user.user_email,
+                product_id: productRows[0].id,
+                product_name: productRows[0].name,
+                product_price: productRows[0].sell_price,
+                product_images: productRows[0].images,
+                quantity: parseInt(quantity) || 1,
+                added_at: user.user_created_at
+              });
+            } else {
+              console.error(`Product not found for ID: ${productId}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error parsing cart for user ${user.user_id}:`, error);
+        console.error(`User email: ${user.user_email}, Cart item:`, user.cart_item);
+      }
+    }
+
+    res.json(cartItemsWithDetails);
+  } catch (error) {
+    console.error('Get all cart items error:', error);
+    res.status(500).json({ error: 'Server error fetching cart items' });
+  }
+};
+
+// Get all wishlist items across all users
+const getAllWishlistItems = async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        u.id as user_id,
+        u.name as user_name,
+        u.email as user_email,
+        u.wishlist,
+        u.created_at as user_created_at
+      FROM users u
+      WHERE u.wishlist IS NOT NULL 
+        AND u.wishlist != '[]'
+        AND u.wishlist != 'null'
+        AND u.role = 'user'
+      ORDER BY u.created_at DESC
+    `);
+
+    // Parse wishlist items and get product details
+    const wishlistItemsWithDetails = [];
+    for (const user of rows) {
+      try {
+        let wishlist = [];
+        if (typeof user.wishlist === 'string') {
+          wishlist = JSON.parse(user.wishlist);
+        } else {
+          wishlist = user.wishlist || [];
+        }
+
+        if (Array.isArray(wishlist) && wishlist.length > 0) {
+          // Remove duplicates
+          const uniqueWishlist = [...new Set(wishlist)];
+
+          for (const productId of uniqueWishlist) {
+            const [productRows] = await pool.execute(
+              'SELECT id, name, sell_price, price, images FROM products WHERE id = ?',
+              [productId]
+            );
+
+            if (productRows.length > 0) {
+              wishlistItemsWithDetails.push({
+                user_id: user.user_id,
+                user_name: user.user_name,
+                user_email: user.user_email,
+                product_id: productRows[0].id,
+                product_name: productRows[0].name,
+                product_price: productRows[0].sell_price,
+                product_images: productRows[0].images,
+                added_at: user.user_created_at
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error parsing wishlist for user ${user.user_id}:`, error);
+      }
+    }
+
+    res.json(wishlistItemsWithDetails);
+  } catch (error) {
+    console.error('Get all wishlist items error:', error);
+    res.status(500).json({ error: 'Server error fetching wishlist items' });
+  }
+};
+
 module.exports = {
   adminLogin,
   createAdmin,
@@ -248,5 +408,7 @@ module.exports = {
   getAllUsers,
   createUser,
   updateUserRole,
-  deleteUser
+  deleteUser,
+  getAllCartItems,
+  getAllWishlistItems
 };
